@@ -1,110 +1,118 @@
-import { useState, useEffect } from "react";
-import { Routes, Route } from "react-router-dom";
-
+import { useEffect, useState } from "react";
+import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { Toaster } from "sonner";
 import AppLayout from "./layouts/AppLayout";
 import Auth from "./components/Auth";
-import Match from "./components/Match"
-import Messages from "./components/Messages";
-import Requests from "./components/Requests";
 import Home from "./pages/Home";
-// later: Matches, Chat, Requests
+import Swipes from "./components/Swipes";
+import Messages from "./components/Messages";
+import Request from "./components/Request";
+import ProjectForm from "./components/ProjectForm";
+import api from "./lib/axios";
 
-const avatarImports = import.meta.glob(
-  "/src/assets/*.{png,jpg,jpeg}",
-  { eager: true, import: "default" }
-);
+
+const avatarImports = import.meta.glob("/src/assets/*.{png,jpg,jpeg}", {
+  eager: true,
+  import: "default",
+});
 const avatarArray = Object.values(avatarImports);
 
-function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+export default function App() {
+  const navigate = useNavigate();
+
+  // 🔐 AUTH STATE
+  const [isLoggedIn, setIsLoggedIn] = useState(null);
+  const [needsProjectForm, setNeedsProjectForm] = useState(false);
   const [light, setLight] = useState(false);
   const [avatar, setAvatar] = useState(3);
-  const [profile, setProfile] = useState({
-    name: "",
-    age: "",
-    email: "",
-    gender: "Male",
-    location: "",
-    interests: {
-      "AI/ML": false,
-      MERN: true,
-      "App Dev": false,
-      "Cyber security": false,
-      "Data science": false,
-    },
-    distance: 25,
-  });
 
+  // check auth on app load
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) setIsLoggedIn(true);
+    const checkAuth = async () => {
+      try {
+        await api.get("api/profiledata"); // requires auth
+        setIsLoggedIn(true);
+      } catch (err) {
+        setIsLoggedIn(false);
+        setNeedsProjectForm(false);
+        navigate("/", { replace: true });
+      }
+    };
+    checkAuth();
   }, []);
 
   const toggleTheme = () => {
-    const audio = new Audio(
-      "/sounds/mixkit-on-or-off-light-switch-tap-2585.wav"
-    );
+    const audio = new Audio("/sounds/mixkit-on-or-off-light-switch-tap-2585.wav");
     audio.volume = 0.8;
     audio.play();
-
     document.body.classList.toggle("light");
-    setLight(prev => !prev);
+    setLight((prev) => !prev);
   };
-
- 
-  if (!isLoggedIn) {
-    return <Auth onLoginSuccess={() => setIsLoggedIn(true)} />;
-  }
-
+if (isLoggedIn === null) return null; 
   return (
-    <AppLayout
-      light={light}
-      toggleTheme={toggleTheme}
-      avatar={avatar}
-      setAvatar={setAvatar}
-      avatarArray={avatarArray}
-      profile={profile}
-      setProfile={setProfile}
-      setIsLoggedIn={setIsLoggedIn}
-    >
-      <Routes>
-        <Route
-          path="/home"
-          element={
-            <Home
+    <>
+        <Toaster theme="dark" richColors position="top-center" />
+    <Routes>
+      {/* ---------------- AUTH ---------------- */}
+      <Route
+        path="/"
+        element={
+          !isLoggedIn ? (
+            <Auth
+              onLoginSuccess={() => setIsLoggedIn(true)}
+              onSignupSuccess={() => setNeedsProjectForm(true)}
+            />
+          ) : (
+            <Navigate to="/home" replace />
+          )
+        }
+      />
+
+      {/* ---------------- PROJECT SETUP ---------------- */}
+      <Route
+        path="/project"
+        element={
+          needsProjectForm ? (
+            <ProjectForm
+              onComplete={() => {
+                setNeedsProjectForm(false);
+                setIsLoggedIn(true);
+              }}
+            />
+          ) : (
+            <Navigate to="/" replace />
+          )
+        }
+      />
+
+      {/* ---------------- MAIN APP ---------------- */}
+      <Route
+        path="/*"
+        element={
+          isLoggedIn ? (
+            <AppLayout
               light={light}
-              profile={profile}
-              avatar={avatarArray[avatar]}
-            />
-          }
-        />
-        <Route
-          path="/matches"
-          element={
-            <Match
-            
-            />
-          }
-        />
-         <Route
-          path="/messages"
-          element={
-            <Messages
-            
-            />
-          }
-        />
-         <Route
-          path="/requests"
-          element={
-            <Requests
-            
-            />
-          }
-        />
-      </Routes>
-    </AppLayout>
+              toggleTheme={toggleTheme}
+            avatar={avatarArray[avatar]}
+              setAvatar={setAvatar}
+              avatarArray={avatarArray}
+            >
+              <Routes>
+                <Route
+                  path="home"
+                  element={<Home light={light}  />}
+                />
+                <Route path="swipes" element={<Swipes light={light} />} />
+                <Route path="messages" element={<Messages light={light}/>} />
+                <Route path="requests" element={<Request light={light} />} />
+              </Routes>
+            </AppLayout>
+          ) : (
+            <Navigate to="/" replace />
+          )
+        }
+      />
+    </Routes>
+    </>
   );
 }
-
-export default App;

@@ -8,16 +8,15 @@ export default function AppLayout({
   toggleTheme,
   avatar,
   setAvatar,
-  avatarArray,
-  profile,
-  setProfile,
+       avatarArray,
   setIsLoggedIn,
 }) {
   return (
     <div className="flex h-screen bg-bg-dark overflow-hidden">
       {/* ✅ COMMON SIDEBAR */}
-      <Sidebar avatar={avatarArray[avatar]} avatarArray={avatarArray} />
-
+  <Sidebar
+    avatar={avatar}
+    />
       {/* ✅ MAIN CONTENT */}
       <div className="relative flex-1">
         {children}
@@ -29,8 +28,7 @@ export default function AppLayout({
           setAvatar={setAvatar}
         //   setVisible={setShowpanel}
           avatarArray={avatarArray}
-          profile={profile}
-          setProfile={setProfile}
+     
           setIsLoggedIn={setIsLoggedIn}
           className="fixed right-8 bottom-8"
         />

@@ -1,10 +1,11 @@
-import { Router } from "express";
-import { matchesControllers } from "../controllers/matchesControllers";
-import authMiddleware from "../middlewares/authMiddleware";
-const router = Router();
 
+import express from 'express';
+import { acceptSwipe } from '../controllers/matchController.js';
+import authMiddleware from '../middlewares/authMiddleware.js';
 
-router.get("/matches/recieved", authMiddleware,matchesControllers);
+const router = express.Router();
 
+// PATCH /api/matches/accept/:swipeId
+router.patch("/accept/:swipeId", authMiddleware, acceptSwipe)
 
 export default router;

@@ -1,59 +1,105 @@
-// CardFeed.jsx
-import { useState, useEffect } from "react";
+import React, { useMemo, useRef, useState, useEffect, useCallback } from "react";
 import ProjectCard from "./ProjectCard";
+import { useProfile } from "@/context/profileData";
+import api from "@/lib/axios";
+import { useNavigate } from "react-router-dom";
+import { AnimatePresence } from "framer-motion";
 
-const fetchUsersBatch = (page) => {
-  const start = page * 10;
-  const end = start + 10;
-  const dummy = Array.from({ length: 1000 }, (_, i) => ({
-    id: i + 1,
-    name: `User ${i + 1}`,
-    avatar: `https://picsum.photos/300?random=${i + 1}`,
-  }));
+const VISIBLE_CARDS = 3;
+const PREFETCH_AT = 2;
 
-  return dummy.slice(start, end);
-};
+const CardFeed = ({ light }) => {
+  const { profile } = useProfile();
+  const navigate = useNavigate();
 
-const CardFeed = ({profile}) => {
-  const [users, setUsers] = useState([]);
+  const [projects, setProjects] = useState([]);
   const [page, setPage] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
 
-  useEffect(() => {
-    setUsers(fetchUsersBatch(0));
-  }, []);
+  const fetchProjects = useCallback(async () => {
+    if (loading || !hasMore) return;
 
-  const handleSwipe = (id) => {
-    setUsers((prev) => {
-   
-      const updated = prev.filter((u) => u.id !== id);
+    setLoading(true);
+    try {
+      const { data } = await api.get(`/api/feed?page=${page}`, {
+        withCredentials: true,
+      });
 
-      if (updated.length < 3) {
-        const nextBatch = fetchUsersBatch(page + 1);
-        setPage((p) => p + 1);
-        return [...updated, ...nextBatch];
+      if (!data?.length) {
+        setHasMore(false);
+        return;
       }
 
+      setProjects((prev) => [...prev, ...data]);
+      setPage((prev) => prev + 1);
+    } catch (err) {
+      if (err.response?.status === 401) {
+        navigate("/", { replace: true });
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [page, loading, hasMore, navigate]);
+
+  useEffect(() => {
+    fetchProjects();
+  }, []);
+
+  const handleSwipe = async (projectId, direction, ownerId) => {
+    setProjects((prev) => {
+      const updated = prev.filter((p) => p._id !== projectId);
+      if (updated.length === PREFETCH_AT) fetchProjects();
       return updated;
     });
+
+    try {
+      await api.post("/api/swipe", {
+        projectId,
+        ownerId,
+        direction: direction,
+      });
+      console.log("Swipe recorded:", projectId, direction);
+    } catch (err) {
+      console.error("Error recording swipe:", err);
+    }
   };
 
-  // only show top 3 cards
-  const visibleCards = users.slice(0, 3);
+  const visibleCards = projects.slice(0, VISIBLE_CARDS);
 
   return (
-     <div className="relative w-full h-2/4 flex justify-center items-center">
-      {visibleCards
-        .slice()
-        .reverse()
-        .map((user, idx) => (
-          <ProjectCard
-            key={user.id}
-            user={user}
-            index={idx}
-            profile={profile}
-            onSwipe={handleSwipe}
-          />
-        ))}
+    <div className="relative w-full h-2/4 flex justify-center items-center">
+      {/* EMPTY STATE */}
+      {!projects.length && !loading && (
+        <p className="text-center text-neutral-400 text-lg">
+          You’re all caught up! ✅ No new projects for now, but more opportunities are coming soon.
+        </p>
+      )}
+
+      {/* CARDS */}
+      <AnimatePresence>
+        {visibleCards
+          .slice()
+          .reverse()
+          .map((project, idx) => (
+            <ProjectCard
+              key={project._id}
+              project={project}
+              index={idx}
+              profile={profile}
+              isTop={idx === visibleCards.length - 1}
+              onSwipe={handleSwipe}
+              light={light}
+            />
+          ))}
+      </AnimatePresence>
+
+      {/* LOADING */}
+      {loading && (
+        <p className="absolute bottom-2 text-sm text-neutral-400">
+          Loading...
+        </p>
+      )}
     </div>
   );
 };

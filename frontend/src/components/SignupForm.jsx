@@ -5,9 +5,11 @@ import { Input } from "./ui/Input.jsx";
 import { Label } from "./ui/Label.jsx";
 import { Button } from "./ui/Button.jsx";
 import { Checkbox } from "@radix-ui/react-checkbox";
+import { useNavigate } from "react-router-dom";
+
 import { Eye, EyeOff, ChevronLeft, Github, Sparkles, Plus, Minus } from "lucide-react";
 import api from "@/lib/axios.js";
-
+import { number } from "zod";
 function AnimatedDigit({ value, themeColor }) {
     return (
         <div style={{ position: "relative", overflow: "hidden", height: "20vh", width: "5vw" }}>
@@ -49,34 +51,46 @@ function SmoothNumber({ value, themeColor }) {
     );
 }
 
-export default function SignupForm({ onSwitchToLogin }) {
+export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
     const [step, setStep] = useState("initial");
+    const MAX_SELECTION = 3;
     const [formData, setFormData] = useState({
         name: "",
         email: "",
         password: "",
-        age: "",
+        age: 25,
         gender: "",
         city: "",
+        interests: [],
         verified: false,
     });
 
+
+
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [numericAge, setNumericAge] = useState(25);
+    const [numericAge, setNumericAge] = useState(formData.age || 25);
     const [direction, setDirection] = useState(1);
     const [isVisible, setIsVisible] = useState(true)
 
-  useEffect(() => {
-    if (step === "verified") {
-      const timer = setTimeout(() => {
-        // Redirect to main page
-        window.location.href = "/" // or your main page path
-      }, 5000) // 5 seconds
+useEffect(() => {
+    console.log("Updating formData.age from numericAge:", numericAge);
+    setFormData(prev => ({ ...prev, age: numericAge }));
+}, [numericAge]);
+    const TOP_DOMAINS = [
+        "Web Development",
+        "Mobile App Development",
+        "UI / UX Design",
+        "AI / Machine Learning",
+        "Data Science",
+        "Cyber Security",
+        "Cloud & DevOps",
+        "Blockchain / Web3",
+        "Game Development",
+    ];
 
-      return () => clearTimeout(timer)
-    }
-  }, [step])
+    const navigate = useNavigate();
+
 
 
     const themeColor = formData.gender === "Female" ? "rgb(236, 72, 153)" : "rgb(96, 165, 250)";
@@ -95,55 +109,113 @@ export default function SignupForm({ onSwitchToLogin }) {
         setStep("age");
     };
 
-    const handleAgeSubmit = (e) => {
-        e.preventDefault();
-        toast.success("All done with age! Now, your location, if you please.");
-        setDirection(1);
-        setStep("city");
-    };
+   const handleAgeSubmit = (e) => {
+    e.preventDefault();
+
+    const ageValue = Number(numericAge);
+    if (!ageValue || ageValue < 16) {
+        toast.error("Please select a valid age (16+)");
+        return;
+    }
+
+    setFormData(prev => ({ ...prev, age: ageValue }));
+
+    toast.success("All done with age! Now, your location 😊");
+    setDirection(1);
+    setStep("city");
+};
+
 
     const handleCitySubmit = (e) => {
         e.preventDefault();
         toast.success("Just one more and you’re all set!");
         setDirection(1);
-        setStep("verified");
+        setStep("interests");
     };
 
-    const handleFinalSubmit = async (e) => {
-        e.preventDefault();
-        setIsLoading(true);
+    const toggleDomain = (domain) => {
+        setFormData((prev) => {
+            const selected = prev.interests.includes(domain);
+
+            if (!selected && prev.interests.length >= MAX_SELECTION) {
+                toast.error(`Select up to ${MAX_SELECTION} domains only`);
+                return prev;
+            }
+
+            return {
+                ...prev,
+                interests: selected
+                    ? prev.interests.filter((i) => i !== domain)
+                    : [...prev.interests, domain],
+            };
+        });
+    };
+    const handleContinue = async () => {
+        if (formData.interests.length === 0) {
+            toast.error("Select at least one domain");
+            return;
+        }
 
         try {
-            const res = await api.post(
-                "/auth/signup",
-                formData
-            );
+            setIsLoading(true);
+            const res = await api.post("/auth/signup", formData);
+            const data = res.data;
+            console.log(data)
+            localStorage.setItem("token", data.token);
+            localStorage.setItem("userId", data.userId);
 
             toast.success("Account created 🎉");
+            setStep("verified");
+            onSignupSuccess();
+            setTimeout(() => {
+                navigate("/project");
+            }, 5000);
 
-            localStorage.setItem("token", res.data.token);
-
-            console.log("User:", res.data.user);
 
         } catch (error) {
-            toast.error(
-                error.response?.data?.message || "Signup failed"
-            );
+            console.error("Signup failed:", error);
+            toast.error(error.response?.data?.message || "Signup failed. Please retry.");
         } finally {
             setIsLoading(false);
         }
     };
 
 
+    // const handleFinalSubmit = async (e) => {
+    //     e.preventDefault();
+    //     setIsLoading(true);
 
-    const handleSkip = async () => {
-        setIsLoading(true);
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-        setIsLoading(false);
-        console.log("Signup skipped verification:", formData);
-    };
+    //     try {
+    //         const res = await api.post(
+    //             "/auth/signup",
+    //             formData
+    //         );
 
-    const steps = ["initial", "gender", "age", "city", "verified"];
+    //         toast.success("Account created 🎉");
+
+    //         localStorage.setItem("token", res.data.token);
+
+    //         console.log("User:", res.data.user);
+
+    //     } catch (error) {
+    //         toast.error(
+    //             error.response?.data?.message || "Signup failed"
+    //         );
+    //     } finally {
+    //         setIsLoading(false);
+    //     }
+    // };
+
+
+
+    // const handleSkip = async () => {
+    //     setIsLoading(true);
+    //     await new Promise((resolve) => setTimeout(resolve, 1500));
+    //     setIsLoading(false);
+    //     console.log("Signup skipped verification:", formData);
+    // };
+
+    const steps = ["initial", "gender", "age", "city", "interests", "verified"];
     const currentStepIndex = steps.indexOf(step);
     const progress = ((currentStepIndex + 1) / steps.length) * 100;
 
@@ -446,14 +518,15 @@ export default function SignupForm({ onSwitchToLogin }) {
 
                             >
                                 <div className="text-[120px] font-bold leading-none tracking-tight flex justify-center items-center gap-5 ">
+
                                     <div>
                                         <motion.div
                                             whileTap={{ scale: 0.90 }}
                                             onClick={() => {
-                                                setNumericAge(prev => prev <60 ? prev+ 1 : prev);
+                                                setNumericAge(prev => prev > 16 ? prev - 1 : prev);
                                             }}
 
-                                            className=" cursor-pointer border border-neutral-500 rounded-[50%] p-2 h-auto "><Plus
+                                            className=" cursor-pointer border border-neutral-500 rounded-[50%] p-2 h-auto"><Minus
                                                 style={{
                                                     color:
                                                         formData.gender === "Female"
@@ -468,11 +541,11 @@ export default function SignupForm({ onSwitchToLogin }) {
                                     <div>
                                         <motion.div
                                             whileTap={{ scale: 0.90 }}
-                                                     onClick={() => {
-                                                setNumericAge(prev => prev >16 ? prev - 1 : prev);
+                                            onClick={() => {
+                                                setNumericAge(prev => prev < 60 ? prev + 1 : prev);
                                             }}
 
-                                            className=" cursor-pointer border border-neutral-500 rounded-[50%] p-2 h-auto"><Minus
+                                            className=" cursor-pointer border border-neutral-500 rounded-[50%] p-2 h-auto "><Plus
                                                 style={{
                                                     color:
                                                         formData.gender === "Female"
@@ -508,10 +581,12 @@ export default function SignupForm({ onSwitchToLogin }) {
                                     max="60"
                                     value={numericAge}
                                     onChange={(e) => {
-                                        const val = parseInt(e.target.value);
+                                        const val = Number(e.target.value);
                                         setNumericAge(val);
-                                        setFormData({ ...formData, age: val });
+                                        setFormData(prev => ({ ...prev, age: val }));
                                     }}
+
+
                                     className="w-full h-2 bg-gray-800 rounded-full appearance-none cursor-pointer"
                                     style={{
                                         background: `linear-gradient(to right, ${themeColor} 0%, ${themeColor} ${((numericAge - 16) / (60 - 16)) * 100
@@ -630,77 +705,133 @@ export default function SignupForm({ onSwitchToLogin }) {
                         </Button>
                     </motion.div>
                 )}
-  {step === "verified" && isVisible && (
-  <div className="relative flex flex-col items-center justify-center min-h-screen overflow-hidden bg-black w-full">
-    {/* Radial background */}
-    <div className="absolute inset-0 bg-gradient-radial from-zinc-900/50 via-black to-black" />
+                {step === "interests" && (
+                    <motion.div
+                        key="interests"
+                        custom={direction}
+                        variants={slideVariants}
+                        initial="enter"
+                        animate="center"
+                        exit="exit"
+                        transition={{ duration: 0.35 }}
+                        className="pt-8 relative"
+                    >
+                        {/* Header */}
+                        <div className="mb-8 text-center">
+                            <h2 className="text-4xl font-bold text-white mb-3">
+                                Choose your domain
+                            </h2>
+                            <p className="text-gray-400 text-sm">
+                                Select up to {MAX_SELECTION}
+                            </p>
+                        </div>
 
-    {/* Floating dots */}
-    <div className="absolute inset-0">
-      {[...Array(20)].map((_, i) => (
-        <div
-          key={i}
-          className="animate-float absolute h-2 w-2 rounded-full bg-white/90"
-          style={{
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
-            animationDelay: `${Math.random() * 4}s`,
-            animationDuration: `${3 + Math.random() * 3}s`,
-          }}
-        />
-      ))}
-    </div>
+                        {/* Domain Chips */}
+                        <div className="flex flex-wrap justify-center gap-4 mb-8 ">
+                            {TOP_DOMAINS.map((domain) => {
+                                const selected = formData.interests.includes(domain);
 
-    {/* Badge */}
-    <div className="relative z-10 flex flex-col items-center">
-      <div className="mb-8 flex justify-center">
-        <div className="transition-all duration-1000 scale-100 opacity-100">
-          <div className="relative">
-            {/* Glow layers */}
-            <div className="absolute inset-0 animate-pulse-glow rounded-full bg-emerald-500/30 blur-3xl" />
-            <div className="absolute inset-0 animate-pulse-glow rounded-full bg-emerald-400/20 blur-2xl [animation-delay:200ms]" />
+                                return (
+                                    <button
+                                        key={domain}
+                                        type="button"
+                                        onClick={() => toggleDomain(domain)}
+                                        className={`px-5 py-2.5 cursor-pointer rounded-full text-sm font-medium transition border
+                    ${selected
+                                                ? "bg-white text-black"
+                                                : "border-gray-700 text-gray-400 hover:text-white"
+                                            }`}
+                                    >
+                                        {domain}
+                                    </button>
+                                );
+                            })}
+                        </div>
 
-            {/* Badge container */}
-            <div className="relative flex h-40 w-40 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 via-emerald-500 to-emerald-600 shadow-2xl shadow-emerald-500/50">
-              {/* Inner glow */}
-              <div className="absolute inset-2 rounded-full bg-gradient-to-br from-emerald-300/30 to-transparent" />
+                        {/* Continue */}
+                        <button
+                            onClick={handleContinue}
+                            disabled={formData.interests.length === 0}
+                            style={{ backgroundColor: themeColor }}
+                            className="w-full h-12 cursor-pointer rounded-lg font-semibold text-white disabled:opacity-40"
+                        >
+                            Continue
+                        </button>
 
-              {/* Checkmark */}
-              <svg
-                className="relative z-10 h-16 w-16 text-white drop-shadow-lg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
+                        {/* Back */}
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setDirection(-1);
+                                setStep("city");
+                            }}
+                            className="absolute cursor-pointer -top-4 left-0 flex items-center text-gray-400 hover:text-black"
+                        >
+                            <ChevronLeft className="w-5 h-5 mr-1" />
+                            Back
+                        </button>
+                    </motion.div>
+                )}
+                {step === "verified" && isVisible && (
+                    <div className="relative flex flex-col items-center justify-center min-h-screen overflow-hidden bg-black w-full">
+                        {/* Radial background */}
+                        <div className="absolute inset-0 bg-gradient-radial from-zinc-900/50 via-black to-black" />
 
-              {/* Rotating ring */}
-              <div className="absolute inset-2 animate-spin-slow rounded-full border-2 border-dashed border-white/60" />
-            </div>
-          </div>
-        </div>
-      </div>
 
-      {/* Verified text */}
-      <div className="space-y-2 text-center">
-        <h1 className="bg-gradient-to-b from-zinc-100 via-zinc-300 to-zinc-500 bg-clip-text text-6xl font-bold text-transparent drop-shadow-2xl">
-          Verified!
-        </h1>
-        <p className="bg-gradient-to-r from-zinc-400 via-zinc-300 to-zinc-400 bg-clip-text text-2xl font-medium text-transparent">
-          You're good to go 
-        </p>
-        <div className="text-5xl">🚀</div>
+                        {/* Badge */}
+                        <div className="relative z-10 flex flex-col items-center">
+                            <div className="mb-8 flex justify-center">
+                                <div
+                                    className={`animate-badge-in transition-all duration-1000 ${isVisible ? "scale-100 opacity-100" : "scale-0 opacity-0"
+                                        }`}
+                                ></div>
 
-        {/* Success line */}
-        <div className="mx-auto mt-6 h-1 w-24 rounded-full bg-gradient-to-r from-transparent via-emerald-400 to-transparent" />
-      </div>
-    </div>
-  </div>
-)}
+                                <div className="relative">
+                                    {/* Glow layers */}
+                                    <div className="absolute inset-0 animate-pulse-glow rounded-full bg-emerald-500/30 blur-3xl" />
+                                    <div className="absolute inset-0 animate-pulse-glow rounded-full bg-emerald-400/20 blur-2xl [animation-delay:200ms]" />
+
+                                    {/* Badge container */}
+                                    <div className="relative flex h-40 w-40 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 via-emerald-500 to-emerald-600 shadow-2xl shadow-emerald-500/50">
+                                        {/* Inner glow */}
+                                        <div className="absolute inset-0 animate-pulse-glow rounded-full bg-emerald-500/30 blur-3xl" />
+                                        <div className="absolute inset-0 animate-pulse-glow rounded-full bg-emerald-400/20 blur-2xl [animation-delay:200ms]" />
+                                        {/* Checkmark */}
+                                        <svg
+                                            className="relative z-10 h-16 w-16 animate-check-draw text-white drop-shadow-lg"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="2.5"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                        >
+                                            <polyline points="20 6 9 17 4 12" />
+                                        </svg>
+
+                                        {/* Rotating ring */}
+                                        <div className="absolute inset-2 animate-spin-slow rounded-full border-2 border-dashed border-white/60" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Verified text */}
+                        <div className="space-y-2 text-center">
+                            <h1 className="bg-gradient-to-b from-zinc-100 via-zinc-300 to-zinc-500 bg-clip-text text-6xl font-bold text-transparent drop-shadow-2xl">
+                                Verified!
+                            </h1>
+                            <p className="bg-gradient-to-r from-zinc-400 via-zinc-300 to-zinc-400 bg-clip-text text-2xl font-medium text-transparent">
+                                You're good to go
+                            </p>
+                            <div className="text-5xl">🚀</div>
+
+                            {/* Success line */}
+                            <div className="mx-auto mt-6 h-1 w-24 rounded-full bg-gradient-to-r from-transparent via-emerald-400 to-transparent" />
+                        </div>
+                    </div>
+
+                )}
 
 
             </AnimatePresence>

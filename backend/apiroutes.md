@@ -6,7 +6,7 @@ PATCH/use/edit
 PATCH/use/password
 
 POST/request/send/ignore/:userid
-POST/request/send/intrested/:userid
+POST/request/send/interested/:userid
 
 POST/request/review/accepted/:userid
 POST/request/review/rejected/:userid

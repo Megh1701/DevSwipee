@@ -7,19 +7,32 @@ const swipeSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    ownerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
     projectId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Project",
       required: true,
     },
+      swiperProjectId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Project",
+      required: true
+    },
     direction: {
-      type: Boolean, 
+      type: Boolean,
       required: true,
     },
-    status:{
-        type:String,
-        enum:["ignore","intrested","accepted","rejected"]
-    }
+    status: {
+      type: String,
+      enum: ["ignore", "interested", "accepted", "rejected"],
+     
+    },
+  
+
   },
   { timestamps: true }
 );

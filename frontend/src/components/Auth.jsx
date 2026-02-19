@@ -3,9 +3,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import LoginForm from "./LoginForm";
 import SignupForm from "./SignupForm";
 import ForgotPasswordForm from "./ForgotPasswordForm";
+import ProjectForm from "./ProjectForm";
 import { Toaster } from "sonner";
 
-export default function Auth({ onLoginSuccess }) {
+export default function Auth({ onLoginSuccess,onSignupSuccess}) {
   const [mode, setMode] = useState("login");
 
   return (
@@ -23,7 +24,6 @@ export default function Auth({ onLoginSuccess }) {
               <LoginForm
                 key="login"
                 onLoginSuccess={onLoginSuccess}
-               
                 onSwitchToSignup={() => setMode("signup")}
                  onForgotPassword={() => setMode("forgot")}
               />
@@ -33,7 +33,8 @@ export default function Auth({ onLoginSuccess }) {
               <SignupForm
                 key="signup"
                 onLoginSuccess={onLoginSuccess}
-                onSwitchToLogin={() => setMode("login")}
+                onSignupSuccess={onSignupSuccess}
+                 onSwitchToLogin={() => setMode("login")}
               />
             )}
 
@@ -43,6 +44,8 @@ export default function Auth({ onLoginSuccess }) {
                 onBackToLogin={() => setMode("login")}
               />
             )}
+
+            
           </AnimatePresence>
         </motion.div>
       </div>

@@ -2,24 +2,32 @@
 import { useState } from "react"
 import { Settings } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
+import { useProfile } from "@/context/profileData"
 import api from "@/lib/axios"
+import { useNavigate } from "react-router-dom"
 
-export default function SettingsButton({ light, avatar, setAvatar, avatarArray, profile,setProfile,setIsLoggedIn,className = "" }) {
+
+export default function SettingsButton({ light, avatar, setAvatar, avatarArray, setIsLoggedIn, className = "" }) {
   const [isRotated, setIsRotated] = useState(false)
   const [avatarPanelOpen, setAvatarPanelOpen] = useState(false)
-    const [visible, setVisible] = useState(false);
-const handleLogout = async () => {
-  try {
-    const res = await api.post("/auth/logout");
-    console.log(res.data.message || "Logged out successfully");
-    localStorage.removeItem("token");
-    setIsLoggedIn(false);
-    setVisible(false)
+  const [visible, setVisible] = useState(false);
+  const { profile, setProfile } = useProfile();
+  const navigate = useNavigate()
+  const handleLogout = async () => {
+    try {
+      const res = await api.post("auth/logout", {}, { withCredentials: true });
+      console.log(res.data.message || "Logged out successfully");
+      localStorage.removeItem("token");
+      setIsLoggedIn(false); // update app state
+      setVisible(false);    // close any dropdowns
+     window.location.reload();
+      navigate("/login");
+    } catch (error) {
+      console.error(error.response?.data?.message || "Logout failed");
+    }
+  };
 
-  } catch (error) {
-    console.error(error.response?.data?.message || "Logout failed");
-  }
-};
+
 
   const handleChange = (name, value) => {
     setProfile(prev => ({ ...prev, [name]: value }))
@@ -41,8 +49,10 @@ const handleLogout = async () => {
     setIsRotated(prev => !prev)
     setVisible(prev => !prev)
   }
+  const handleAvatarClick = () => {
+    setAvatarPanelOpen(prev => !prev);
+  };
 
-  const handleAvatarClick = () => setAvatarPanelOpen(true)
 
   return (
     <>
@@ -50,7 +60,7 @@ const handleLogout = async () => {
       <button
         onClick={handleClick}
         className={`
-          z-50 h-11 w-11 flex items-center justify-center
+          z-60 h-11 w-11 flex items-center justify-center
           rounded-full transition-all duration-300 active:scale-95 p-2
           border cursor-pointer
           ${light ? "border-black bg-[#EDEDED] text-black" : "border-white bg-black text-white"}
@@ -82,7 +92,7 @@ const handleLogout = async () => {
               {/* Modal */}
               <motion.div
                 className={`fixed top-[52%] left-1/2 -translate-x-1/2 -translate-y-1/2 
-                 w-[50vw] h-[50vh] z-60 rounded-xl p-3 
+                 w-[50vw] h-[50vh] z-[100] rounded-xl p-3 
                  ${light ? "bg-[#EDEDED]" : "bg-black"}`}
                 initial={{ scale: 0.5, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
@@ -98,7 +108,7 @@ const handleLogout = async () => {
                   {avatarArray.map((src, index) => (
                     <div
                       key={index}
-                      className={`w-20 h-20 rounded-full overflow-hidden border cursor-pointer m-3 ${index === avatar ? "border-blue-500" : "border-gray-400"
+                      className={`w-20 z-100 h-20 rounded-full overflow-hidden border cursor-pointer m-3 ${index === avatar ? "border-blue-500" : "border-gray-400"
                         }`}
                       onClick={() => {
                         setAvatar(index)
@@ -122,7 +132,7 @@ const handleLogout = async () => {
           <>
             {/* Overlay */}
             <motion.div
-              className="fixed top-0 left-0 w-full h-full bg-black/40 backdrop-blur-sm z-20"
+              className="fixed top-0 left-0 w-full h-full bg-black/40 backdrop-blur-sm z-50"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -136,7 +146,7 @@ const handleLogout = async () => {
             <motion.div
               className={`
     fixed bottom-0 left-1/2 -translate-x-1/2 
-    w-[90vw] max-w-3xl h-[82vh] z-30
+    w-[90vw] max-w-3xl h-[82vh] z-60
     shadow-xl rounded-t-2xl rounded-b-none 
     ${light ? "bg-black text-white" : "bg-[#EDEDED] text-black"}
   `}
@@ -158,7 +168,7 @@ const handleLogout = async () => {
                   <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-black shadow-lg bg-gray-300">
                     <img
                       onClick={handleAvatarClick}
-                      src={avatarArray[avatar]}
+                      src={avatar}
                       alt="Avatar"
                       className="w-full h-full object-cover cursor-pointer"
                     />
@@ -206,11 +216,11 @@ const handleLogout = async () => {
 
                       {/* Location */}
                       <div>
-                        <label className="text-gray-400 text-sm">Location</label>
+                        <label className="text-gray-400 text-sm">City</label>
                         <input
                           type="text"
-                          value={profile.location}
-                          onChange={e => handleChange("location", e.target.value)}
+                          value={profile.city}
+                          onChange={e => handleChange("city", e.target.value)}
                           className="w-full bg-transparent text-lg font-medium border-b border-gray-600 focus:border-blue-400 outline-none py-2"
                         />
                       </div>
@@ -275,7 +285,7 @@ const handleLogout = async () => {
                       <div>
                         <label className="text-gray-400 text-sm">Interests</label>
                         <div className="flex flex-wrap gap-3 mt-3">
-                          {Object.entries(profile.interests).map(([interest, selected]) => (
+                          {/* {Object.entries(profile.interests).map(([interest, selected]) => (
                             <button
                               key={interest}
                               onClick={() => handleInterestToggle(interest)}
@@ -284,7 +294,7 @@ const handleLogout = async () => {
                             >
                               {interest}
                             </button>
-                          ))}
+                          ))} */}
                         </div>
                       </div>
 

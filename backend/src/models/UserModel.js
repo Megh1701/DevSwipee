@@ -3,7 +3,8 @@ import mongoose from "mongoose";
 const userSchema = new mongoose.Schema(
   {
     name: String,
-    age: Number,
+    age: { type: Number, required: true, min: 16, max: 60 },
+
     email: { type: String, unique: true },
     password: String,
     gender: String,
@@ -13,7 +14,7 @@ const userSchema = new mongoose.Schema(
 
     // relations
     projects: [{ type: mongoose.Schema.Types.ObjectId, ref: "Project" }],
-    interests: [{ type: mongoose.Schema.Types.ObjectId, ref: "UserInterest" }],
+
     preferences: { type: mongoose.Schema.Types.ObjectId, ref: "UserPreference" },
   },
   { timestamps: true }

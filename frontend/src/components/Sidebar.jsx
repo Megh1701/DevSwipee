@@ -11,10 +11,11 @@ const Sidebar = ({avatar}) => {
                 <div className="h-28 w-28 rounded-full border border-neutral-500 overflow-hidden">
                     <img        
                         src={avatar}
+                        
                         alt="first-image"
                         className="w-full h-full object-cover"
                     />
-
+{console.log(avatar)}
                 </div>
 
                 <Link to="/home">
@@ -28,7 +29,7 @@ const Sidebar = ({avatar}) => {
                 </Link>
 
 
-                <Link to="/matches">
+                <Link to="/swipes">
                     <button className="relative rounded-3xl px-4 py-2 border border-neutral-700 flex justify-start  gap-3 w-36 items-center overflow-hidden cursor-pointer">
 
                         <svg width="19" height="17" viewBox="0 0 19 17" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -36,7 +37,7 @@ const Sidebar = ({avatar}) => {
                         </svg>
                         <div className="absolute inset-x-0 h-px -bottom-0 w-full bg-gradient-to-r from-transparent via-red-300 to-transparent"></div>
 
-                        <div className="text-text-dark">Match</div>
+                        <div className="text-text-dark">Swipes</div>
 
                     </button>
 
