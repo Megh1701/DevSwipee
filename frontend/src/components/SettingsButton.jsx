@@ -13,6 +13,17 @@ export default function SettingsButton({ light, avatar, setAvatar, avatarArray, 
   const [visible, setVisible] = useState(false);
   const { profile, setProfile } = useProfile();
   const navigate = useNavigate()
+  const TOP_DOMAINS = [
+    "Web Development",
+    "Mobile App Development",
+    "UI / UX Design",
+    "AI / Machine Learning",
+    "Data Science",
+    "Cyber Security",
+    "Cloud & DevOps",
+    "Blockchain / Web3",
+    "Game Development",
+  ];
   const handleLogout = async () => {
     try {
       const res = await api.post("auth/logout", {}, { withCredentials: true });
@@ -20,7 +31,7 @@ export default function SettingsButton({ light, avatar, setAvatar, avatarArray, 
       localStorage.removeItem("token");
       setIsLoggedIn(false); // update app state
       setVisible(false);    // close any dropdowns
-     window.location.reload();
+      window.location.reload();
       navigate("/login");
     } catch (error) {
       console.error(error.response?.data?.message || "Logout failed");
@@ -34,11 +45,17 @@ export default function SettingsButton({ light, avatar, setAvatar, avatarArray, 
   }
 
   const handleInterestToggle = (interest) => {
-    setProfile(prev => ({
-      ...prev,
-      interests: { ...prev.interests, [interest]: !prev.interests[interest] },
-    }))
-  }
+    setProfile((prev) => {
+      const alreadySelected = prev.interests.includes(interest);
+
+      return {
+        ...prev,
+        interests: alreadySelected
+          ? prev.interests.filter((i) => i !== interest)
+          : [...prev.interests, interest],
+      };
+    });
+  };
 
   const handleClick = () => {
     if (!visible) {
@@ -175,8 +192,9 @@ export default function SettingsButton({ light, avatar, setAvatar, avatarArray, 
                   </div>
                 </div>
 
+                <div className="text-2xl font-extrabold">Edit Profile</div>
                 {/* CONTENT SCROLL */}
-                <div className="mt-16 flex-1 overflow-y-auto pr-1">
+                <div className="mt-10 flex-1 overflow-y-auto pr-1">
                   <div className="flex flex-col md:flex-row gap-8 w-full">
 
                     {/* LEFT SIDE */}
@@ -224,31 +242,6 @@ export default function SettingsButton({ light, avatar, setAvatar, avatarArray, 
                           className="w-full bg-transparent text-lg font-medium border-b border-gray-600 focus:border-blue-400 outline-none py-2"
                         />
                       </div>
-                    </div>
-
-                    {/* RIGHT SIDE */}
-                    <div className="w-full md:w-1/2 flex flex-col gap-10">
-
-                      {/* Gender */}
-                      <div>
-                        <label className="text-gray-400 text-sm">Gender</label>
-                        <div className="flex gap-3 mt-3">
-                          {["Male", "Female"].map(g => (
-                            <button
-                              key={g}
-                              onClick={() => setProfile(prev => ({ ...prev, gender: g }))}
-                              className={`px-6 py-2 rounded-full font-medium transition cursor-pointer 
-                                ${profile.gender === g
-                                  ? "bg-blue-400 text-black"
-                                  : "border border-gray-600 text-inherit hover:border-gray-500"
-                                }`}
-                            >
-                              {g}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
                       {/* Distance */}
                       <div>
                         <label className="block text-gray-400 mb-1">
@@ -281,20 +274,62 @@ export default function SettingsButton({ light, avatar, setAvatar, avatarArray, 
                         />
                       </div>
 
+                    </div>
+
+                    {/* RIGHT SIDE */}
+                    <div className="w-full md:w-1/2 flex flex-col gap-10">
+
+                      {/* Gender */}
+                      <div>
+                        <label className="text-gray-400 text-sm">Gender</label>
+                        <div className="flex gap-3 mt-3">
+                          {["Male", "Female"].map(g => (
+                            <button
+                              key={g}
+                              onClick={() => setProfile(prev => ({ ...prev, gender: g }))}
+                              className={`px-6 py-2 rounded-full font-medium transition cursor-pointer 
+                                ${profile.gender === g
+                                  ? "bg-blue-400 text-black"
+                                  : "border border-gray-600 text-inherit hover:border-gray-500"
+                                }`}
+                            >
+                              {g}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div >
+                        <button
+                          onClick={{}}
+                          className={`px-6 py-2 rounded-full border w-full font-medium transition cursor-pointer 
+                            ${light ? "border-white" : "border-black"} 
+                            }`}
+                        >
+                          Edit Your Project Details                       </button>
+                      </div>
+
                       {/* Interests */}
                       <div>
                         <label className="text-gray-400 text-sm">Interests</label>
                         <div className="flex flex-wrap gap-3 mt-3">
-                          {/* {Object.entries(profile.interests).map(([interest, selected]) => (
-                            <button
-                              key={interest}
-                              onClick={() => handleInterestToggle(interest)}
-                              className={`px-4 py-1.5 rounded-full text-sm font-medium transition cursor-pointer
-                                ${selected ? "bg-blue-400 text-black" : "border border-gray-600 hover:border-gray-500"}`}
-                            >
-                              {interest}
-                            </button>
-                          ))} */}
+                          {TOP_DOMAINS.map((interest) => {
+                            const selected = profile.interests.includes(interest);
+
+                            return (
+                              <button
+                                key={interest}
+                                onClick={() => handleInterestToggle(interest)}
+                                className={`px-4 py-1.5 rounded-full text-sm font-medium transition cursor-pointer
+        ${selected
+                                    ? "bg-blue-400 text-black"
+                                    : "border border-gray-600 hover:border-gray-500"
+                                  }`}
+                              >
+                                {interest}
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
 

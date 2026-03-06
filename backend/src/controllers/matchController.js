@@ -1,44 +1,41 @@
 import MatchModel from "../models/MatchModel.js";
 import SwipeModel from "../models/SwipeModel.js";
 
-// deterministic ordering (prevents duplicates)
 function normalizeUsers(a, b) {
-    return a.toString() < b.toString() ? [a, b] : [b, a];
+  return a.toString() < b.toString() ? [a, b] : [b, a];
 }
+
 export const acceptSwipe = async (req, res) => {
   try {
     const { swipeId } = req.params;
     const userId = req.user.id;
 
+    // 1️⃣ Accept swipe
     const swipe = await SwipeModel.findOneAndUpdate(
       { _id: swipeId, ownerId: userId, status: "interested" },
       { status: "accepted" },
       { new: true }
     );
 
-    console.log("👉 ACCEPTED SWIPE:", swipe);
-
     if (!swipe) {
-      return res.status(404).json({ message: "Swipe not found or handled" });
+      return res.status(404).json({
+        success: false,
+        message: "Swipe not found or already handled",
+      });
     }
 
-    console.log("🔍 SEARCH OPPOSITE WITH:", {
-      swiperId: swipe.ownerId,
-      ownerId: swipe.swiperId,
-      projectId: swipe.swiperProjectId,
-      swiperProjectId: swipe.projectId,
-      status: "accepted",
-    });
+    console.log("👉 ACCEPTED:", swipe);
 
+    // 2️⃣ Find opposite swipe (SWAP projects!)
     const oppositeSwipe = await SwipeModel.findOne({
       swiperId: swipe.ownerId,
       ownerId: swipe.swiperId,
-      projectId: swipe.swiperProjectId,
-      swiperProjectId: swipe.projectId,
+      projectId: swipe.swiperProjectId,      // swapped
+      swiperProjectId: swipe.projectId,      // swapped
       status: "accepted",
     });
 
-    console.log("👀 OPPOSITE SWIPE:", oppositeSwipe);
+    console.log("👀 OPPOSITE:", oppositeSwipe);
 
     let match = null;
 
@@ -51,8 +48,17 @@ export const acceptSwipe = async (req, res) => {
       );
 
       match = await MatchModel.findOneAndUpdate(
-        { user1Id, user2Id, projectId: swipe.projectId },
-        { user1Id, user2Id, projectId: swipe.projectId, createdBy: userId },
+        {
+          user1Id,
+          user2Id,
+          projectId: swipe.projectId, // owner's project
+        },
+        {
+          user1Id,
+          user2Id,
+          projectId: swipe.projectId,
+          createdBy: userId,
+        },
         { upsert: true, new: true }
       );
 
@@ -65,8 +71,9 @@ export const acceptSwipe = async (req, res) => {
       matchCreated: !!match,
       match,
     });
+
   } catch (err) {
-    console.error("❌ ACCEPT SWIPE ERROR:", err);
+    console.error("❌ ERROR:", err);
     return res.status(500).json({ success: false });
   }
 };

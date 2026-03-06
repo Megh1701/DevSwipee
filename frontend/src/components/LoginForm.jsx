@@ -25,8 +25,11 @@ export default function LoginForm({ onSwitchToSignup,onForgotPassword,onLoginSuc
                 password
             }
             )
+            console.log(response.data);
             localStorage.setItem("token", response.data.token);
+            localStorage.setItem("userId", response.data.user.id); 
             toast.success("Welcome back 👋");
+
             if (onLoginSuccess)
                  onLoginSuccess();
 

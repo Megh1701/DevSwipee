@@ -1,124 +1,96 @@
-import { useEffect, useState, useRef } from "react";
-import { useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
 import axios from "axios";
-import { io } from "socket.io-client";
+import { useNavigate } from "react-router-dom";
 
-export default function Message() {
-  const { matchId } = useParams();
-  const [messages, setMessages] = useState([]);
-  const [text, setText] = useState("");
-  const messagesEndRef = useRef(null);
+export default function Messages({ light }) {
+  const [matches, setMatches] = useState([]);
+  const navigate = useNavigate();
+  const currentUserId = localStorage.getItem("userId");
 
-  const socketRef = useRef(null);
+  const bgMain = light
+    ? "bg-gray-100 text-black"
+    : "bg-neutral-950 text-white";
 
-  // 🔥 Connect Socket
+  const headerStyle = light
+    ? "bg-white border-black/10 text-black"
+    : "bg-neutral-900 border-white/10 text-white";
+
+  const cardStyle = light
+    ? "bg-white hover:bg-gray-100 border-black/10"
+    : "bg-neutral-900 hover:bg-neutral-800 border-white/10";
+
+
   useEffect(() => {
-    socketRef.current = io("http://localhost:3000", {
-      withCredentials: true,
-    });
-
-    socketRef.current.emit("joinRoom", matchId);
-
-    socketRef.current.on("receiveMessage", (newMessage) => {
-      setMessages((prev) => [...prev, newMessage]);
-    });
-
-    return () => {
-      socketRef.current.disconnect();
-    };
-  }, [matchId]);
-
-  // 🔥 Fetch old messages
-  useEffect(() => {
-    const fetchMessages = async () => {
+    const fetchChats = async () => {
       try {
         const res = await axios.get(
-          `http://localhost:3000/api/chat/${matchId}`,
+          "http://localhost:3000/api/chat/my-chats",
           { withCredentials: true }
         );
-        setMessages(res.data);
+        setMatches(res.data.matches);
       } catch (err) {
-        console.error(err);
+        console.error("Failed to fetch chats:", err);
       }
     };
 
-    fetchMessages();
-  }, [matchId]);
+    fetchChats();
+  }, []);
 
-  // 🔥 Auto scroll
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  const openChat = (match) => {
+    const otherUser =
+      match.user1Id._id === currentUserId
+        ? match.user2Id
+        : match.user1Id;
 
-  // 🔥 Send Message
-  const sendMessage = async () => {
-    if (!text.trim()) return;
-
-    try {
-      const res = await axios.post(
-        "http://localhost:3000/api/chat/send",
-        { matchId, text },
-        { withCredentials: true }
-      );
-
-      socketRef.current.emit("sendMessage", res.data);
-
-      setMessages((prev) => [...prev, res.data]);
-      setText("");
-    } catch (err) {
-      console.error(err);
-    }
+    navigate(`/chat/${match._id}`, {
+      state: { otherUser },
+    });
   };
 
-  const currentUserId = localStorage.getItem("userId");
+  /* ---------------- RENDER ---------------- */
 
   return (
-    <div className="h-screen flex flex-col bg-gray-100">
+    <div className={`h-screen flex flex-col transition-colors duration-300 ${bgMain}`}>
       
-      {/* Header */}
-      <div className="p-4 bg-white shadow font-semibold text-lg">
-        DevSwipe Chat
+      {/* HEADER */}
+      <div className={`p-5 border-b font-semibold text-xl ${headerStyle}`}>
+        Chats
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {messages.map((msg) => {
-          const isOwn = msg.senderId === currentUserId;
+      {/* CHAT LIST */}
+      <div className="flex-1 overflow-y-auto">
+        {matches.length === 0 && (
+          <div className="flex items-center justify-center h-full opacity-60">
+            No conversations yet.
+          </div>
+        )}
+
+        {matches.map((match) => {
+          const otherUser =
+            match.user1Id._id === currentUserId
+              ? match.user2Id
+              : match.user1Id;
 
           return (
             <div
-              key={msg._id}
-              className={`flex ${isOwn ? "justify-end" : "justify-start"}`}
+              key={match._id}
+              onClick={() => openChat(match)}
+              className={`p-4 border-b flex items-center gap-4 cursor-pointer transition-all duration-200 ${cardStyle}`}
             >
-              <div
-                className={`px-4 py-2 rounded-2xl max-w-xs text-white ${
-                  isOwn ? "bg-pink-500" : "bg-gray-400"
-                }`}
-              >
-                {msg.text}
+              <img
+                src={otherUser.avatar}
+                alt={otherUser.name}
+                className="w-11 h-11 rounded-full object-cover"
+              />
+
+              <div className="flex-1">
+                <div className="font-semibold tracking-tight">
+                  {otherUser.name}
+                </div>
               </div>
             </div>
           );
         })}
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Input */}
-      <div className="p-3 bg-white flex gap-2">
-        <input
-          type="text"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Type a message..."
-          className="flex-1 border rounded-full px-4 py-2 outline-none"
-          onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-        />
-        <button
-          onClick={sendMessage}
-          className="bg-pink-500 text-white px-5 rounded-full"
-        >
-          Send
-        </button>
       </div>
     </div>
   );

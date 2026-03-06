@@ -17,7 +17,7 @@ const swipeSchema = new mongoose.Schema(
       ref: "Project",
       required: true,
     },
-      swiperProjectId: {
+    swiperProjectId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Project",
       required: true

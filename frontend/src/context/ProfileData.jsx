@@ -13,6 +13,7 @@ export const ProfileProvider = ({ children }) => {
         gender: "Male",
         city: "",
         interests: [],
+        projects:[],
         distance: 25,
     });
 
@@ -21,8 +22,8 @@ export const ProfileProvider = ({ children }) => {
         const fetchdata = async () => {
             try {
                 const res = await api.get("api/profiledata")
-                setProfile(res.data)
-                console.log(profile.name)
+                console.log("API DATA:", res.data);
+                setProfile(res.data);
             } catch (error) {
                 setProfile({
                     name: "",
@@ -31,6 +32,7 @@ export const ProfileProvider = ({ children }) => {
                     gender: "Male",
                     city: "",
                     interests: [],
+                    projects:[],
                     distance: 25,
                 });
             } finally {

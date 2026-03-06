@@ -10,6 +10,11 @@ import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff, ChevronLeft, Github, Sparkles, Plus, Minus } from "lucide-react";
 import api from "@/lib/axios.js";
 import { number } from "zod";
+// Import all avatars dynamically from src/assets
+// Assuming SignupForm.jsx is in src/components/
+const avatarImports = import.meta.glob("../assets/*.png", { eager: true });
+const AVATARS = Object.values(avatarImports).map(mod => mod.default ?? mod);
+
 function AnimatedDigit({ value, themeColor }) {
     return (
         <div style={{ position: "relative", overflow: "hidden", height: "20vh", width: "5vw" }}>
@@ -62,9 +67,9 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
         gender: "",
         city: "",
         interests: [],
+        avatar: "",
         verified: false,
     });
-
 
 
     const [showPassword, setShowPassword] = useState(false);
@@ -73,10 +78,10 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
     const [direction, setDirection] = useState(1);
     const [isVisible, setIsVisible] = useState(true)
 
-useEffect(() => {
-    console.log("Updating formData.age from numericAge:", numericAge);
-    setFormData(prev => ({ ...prev, age: numericAge }));
-}, [numericAge]);
+    useEffect(() => {
+        console.log("Updating formData.age from numericAge:", numericAge);
+        setFormData(prev => ({ ...prev, age: numericAge }));
+    }, [numericAge]);
     const TOP_DOMAINS = [
         "Web Development",
         "Mobile App Development",
@@ -109,21 +114,21 @@ useEffect(() => {
         setStep("age");
     };
 
-   const handleAgeSubmit = (e) => {
-    e.preventDefault();
+    const handleAgeSubmit = (e) => {
+        e.preventDefault();
 
-    const ageValue = Number(numericAge);
-    if (!ageValue || ageValue < 16) {
-        toast.error("Please select a valid age (16+)");
-        return;
-    }
+        const ageValue = Number(numericAge);
+        if (!ageValue || ageValue < 16) {
+            toast.error("Please select a valid age (16+)");
+            return;
+        }
 
-    setFormData(prev => ({ ...prev, age: ageValue }));
+        setFormData(prev => ({ ...prev, age: ageValue }));
 
-    toast.success("All done with age! Now, your location 😊");
-    setDirection(1);
-    setStep("city");
-};
+        toast.success("All done with age! Now, your location 😊");
+        setDirection(1);
+        setStep("city");
+    };
 
 
     const handleCitySubmit = (e) => {
@@ -155,22 +160,21 @@ useEffect(() => {
             toast.error("Select at least one domain");
             return;
         }
-
         try {
             setIsLoading(true);
-            const res = await api.post("/auth/signup", formData);
-            const data = res.data;
-            console.log(data)
-            localStorage.setItem("token", data.token);
-            localStorage.setItem("userId", data.userId);
+            // const res = await api.post("/auth/signup", formData);
+            // const data = res.data;
+            // console.log(data)
+            // localStorage.setItem("token", data.token);
+            // localStorage.setItem("userId", data.userId);
 
-            toast.success("Account created 🎉");
-            setStep("verified");
-            onSignupSuccess();
-            setTimeout(() => {
-                navigate("/project");
-            }, 5000);
-
+            toast.success("Select avatar");
+            setDirection(1);
+            setStep("avatar");
+            // onSignupSuccess();
+            // setTimeout(() => {
+            //     navigate("/project");
+            // }, 5000);
 
         } catch (error) {
             console.error("Signup failed:", error);
@@ -181,41 +185,31 @@ useEffect(() => {
     };
 
 
-    // const handleFinalSubmit = async (e) => {
-    //     e.preventDefault();
-    //     setIsLoading(true);
+    const handleFinalSignup = async () => {
+        try {
+            setIsLoading(true);
 
-    //     try {
-    //         const res = await api.post(
-    //             "/auth/signup",
-    //             formData
-    //         );
+            const res = await api.post("/auth/signup", formData);
 
-    //         toast.success("Account created 🎉");
+            localStorage.setItem("token", res.data.token);
+            localStorage.setItem("userId", res.data.userId);
 
-    //         localStorage.setItem("token", res.data.token);
+            toast.success("Account created 🎉");
 
-    //         console.log("User:", res.data.user);
+            setStep("verified");
 
-    //     } catch (error) {
-    //         toast.error(
-    //             error.response?.data?.message || "Signup failed"
-    //         );
-    //     } finally {
-    //         setIsLoading(false);
-    //     }
-    // };
+            setTimeout(() => {
+                onSignupSuccess()
+                navigate("/project");
+            }, 3000);
 
-
-
-    // const handleSkip = async () => {
-    //     setIsLoading(true);
-    //     await new Promise((resolve) => setTimeout(resolve, 1500));
-    //     setIsLoading(false);
-    //     console.log("Signup skipped verification:", formData);
-    // };
-
-    const steps = ["initial", "gender", "age", "city", "interests", "verified"];
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Signup failed");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    const steps = ["initial", "gender", "age", "city", "interests", "avatar", "verified"];
     const currentStepIndex = steps.indexOf(step);
     const progress = ((currentStepIndex + 1) / steps.length) * 100;
 
@@ -766,6 +760,69 @@ useEffect(() => {
                                 setStep("city");
                             }}
                             className="absolute cursor-pointer -top-4 left-0 flex items-center text-gray-400 hover:text-black"
+                        >
+                            <ChevronLeft className="w-5 h-5 mr-1" />
+                            Back
+                        </button>
+                    </motion.div>
+                )}
+                {step === "avatar" && (
+                    <motion.div
+                        key="avatar"
+                        custom={direction}
+                        variants={slideVariants}
+                        initial="enter"
+                        animate="center"
+                        exit="exit"
+                        transition={{ duration: 0.35 }}
+                        className="pt-8"
+                    >
+                        <div className="mb-8 text-center">
+                            <h2 className="text-4xl font-bold text-white mb-3">
+                                Choose Your Avatar
+                            </h2>
+                            <p className="text-gray-400 text-sm">
+                                Pick one that matches your vibe ✨
+                            </p>
+                        </div>
+
+                       <div className="grid grid-cols-5 gap-4 mb-8">
+  {AVATARS.map((avatarUrl, idx) => {
+    const selected = formData.avatar === avatarUrl;
+    return (
+      <motion.div
+        key={idx}
+        className={`w-20 h-20 rounded-full overflow-hidden cursor-pointer border-2 flex items-center justify-center transition-transform
+          ${selected ? "scale-110 shadow-lg border-white border-4" : "border-gray-700 hover:border-white/50"}`}
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={() => setFormData({ ...formData, avatar: avatarUrl })}
+      >
+        <img
+          src={avatarUrl}
+          alt={`Avatar ${idx + 1}`}
+          className="w-full h-full object-cover rounded-full"
+        />
+      </motion.div>
+    );
+  })}
+</div>
+                        <button
+                            onClick={handleFinalSignup}
+                            disabled={!formData.avatar}
+                            style={{ backgroundColor: themeColor }}
+                            className="w-full h-12 rounded-lg font-semibold text-white cursor-pointer disabled:opacity-40"
+                        >
+                            Finish Signup
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setDirection(-1);
+                                setStep("interests");
+                            }}
+                            className="absolute -top-4 left-0 flex items-center text-gray-400"
                         >
                             <ChevronLeft className="w-5 h-5 mr-1" />
                             Back
