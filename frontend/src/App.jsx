@@ -9,6 +9,7 @@ import Messages from "./components/Messages";
 import ChatRoom from "./components/ChatRoom";
 import Request from "./components/Request";
 import ProjectForm from "./components/ProjectForm";
+import ATSDashboard from "./components/ATSDashboard";
 import api from "./lib/axios";
 
 
@@ -110,6 +111,7 @@ if (isLoggedIn === null) return null;
                 <Route path="messages" lement={<Messages light={light}/>} />
                 <Route path="chat/:matchId" element={<ChatRoom light={light}/>} />
                 <Route path="requests" element={<Request light={light} />} />
+                <Route path="ats-dashboard" element={<ATSDashboard light={light} />} />
               </Routes>
             </AppLayout>
           ) : (

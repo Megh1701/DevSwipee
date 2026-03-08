@@ -62,6 +62,22 @@ const projectSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+
+    // ATS Score fields
+    atsQualityScore: {
+      type: Number,
+      min: 0,
+      max: 40,
+      default: null,
+    },
+    atsQualityAnalysis: {
+      type: Object,
+      default: null,
+    },
+    lastDescriptionHash: {
+      type: String,
+      default: null,
+    },
   },
   { timestamps: true }
 );

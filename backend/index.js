@@ -16,6 +16,7 @@ const startServer = async () => {
   const projectDetailRoutes = (await import("./src/routes/projectDetailRoutes.js")).default;
   const matchesRouter = (await import("./src/routes/matchesRoutes.js")).default;
   const chatRoutes = (await import("./src/routes/chatRoutes.js")).default;
+  const atsRoutes = (await import("./src/routes/atsRoutes.js")).default;
   const initializeSocket = (await import("./src/socket/socket.js")).default;
 
   await connectDB();
@@ -41,6 +42,7 @@ const startServer = async () => {
   app.use("/api", SwipeHandler);
   app.use("/api/matches", matchesRouter);
   app.use("/api/chat", chatRoutes);
+  app.use("/api/ats", atsRoutes);
 
   // 🔥 Initialize Socket (separate file)
   initializeSocket(server);

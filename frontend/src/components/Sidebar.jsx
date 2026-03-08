@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { startPlatformTour } from "../utils/tourGuide";
 
 
 
@@ -18,7 +19,7 @@ const Sidebar = ({avatar}) => {
 {console.log(avatar)}
                 </div>
 
-                <Link to="/home">
+                <Link to="/home" id="home-nav-link">
                     <button className="overflow-hidden cursor-pointer relative rounded-3xl px-4 py-2 border border-neutral-700 flex justify-start  gap-3 w-36 items-center">
                         <svg width="17" height="18" viewBox="0 0 17 18" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M11 17.1245V10.1245C11 9.89248 10.9078 9.66992 10.7437 9.50583C10.5796 9.34173 10.3571 9.24954 10.125 9.24954H6.625C6.39294 9.24954 6.17038 9.34173 6.00628 9.50583C5.84219 9.66992 5.75 9.89248 5.75 10.1245V17.1245M0.5 7.49954C0.499939 7.24498 0.555417 6.99346 0.662564 6.76255C0.769711 6.53163 0.925948 6.32687 1.12038 6.16254L7.24537 0.91342C7.56124 0.646465 7.96144 0.5 8.375 0.5C8.78856 0.5 9.18876 0.646465 9.50463 0.91342L15.6296 6.16254C15.8241 6.32687 15.9803 6.53163 16.0874 6.76255C16.1946 6.99346 16.2501 7.24498 16.25 7.49954V15.3745C16.25 15.8387 16.0656 16.2838 15.7374 16.612C15.4092 16.9402 14.9641 17.1245 14.5 17.1245H2.25C1.78587 17.1245 1.34075 16.9402 1.01256 16.612C0.684374 16.2838 0.5 15.8387 0.5 15.3745V7.49954Z" stroke="#B6B6B6" stroke-linecap="round" stroke-linejoin="round" />
@@ -29,7 +30,7 @@ const Sidebar = ({avatar}) => {
                 </Link>
 
 
-                <Link to="/swipes">
+                <Link to="/swipes" id="swipes-nav-link">
                     <button className="relative rounded-3xl px-4 py-2 border border-neutral-700 flex justify-start  gap-3 w-36 items-center overflow-hidden cursor-pointer">
 
                         <svg width="19" height="17" viewBox="0 0 19 17" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -44,7 +45,7 @@ const Sidebar = ({avatar}) => {
                 </Link>
 
 
-                <Link to="/messages">
+                <Link to="/messages" id="messages-nav-link">
                     <button className="relative rounded-3xl px-4 py-2 border border-neutral-700 flex justify-start  gap-3 w-36 items-center overflow-hidden cursor-pointer">
 
                         <svg width="21" height="21" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -59,7 +60,7 @@ const Sidebar = ({avatar}) => {
                 </Link>
 
 
-                <Link to="/requests">
+                <Link to="/requests" id="requests-nav-link">
                     <button className="relative rounded-3xl px-4 py-2 border border-neutral-700 flex justify-start  gap-3 w-36 items-center overflow-hidden cursor-pointer">
 
                         <svg width="21" height="21" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -71,6 +72,32 @@ const Sidebar = ({avatar}) => {
 
                     </button>
                 </Link>
+
+                <Link to="/ats-dashboard" id="ats-nav-link">
+                    <button className="relative rounded-3xl px-4 py-2 border border-neutral-700 flex justify-start  gap-3 w-36 items-center overflow-hidden cursor-pointer">
+
+                        <svg width="21" height="21" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M3.5 17.5V7.5M10.5 17.5V3.5M17.5 17.5V11.5" stroke="#60A5FA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        <div className="absolute inset-x-0 h-px -bottom-0 w-full bg-gradient-to-r from-transparent via-blue-400 to-transparent"></div>
+
+                        <div className="text-text-dark">ATS Score</div>
+
+                    </button>
+                </Link>
+
+                {/* Tour Guide Button */}
+                <button
+                    onClick={startPlatformTour}
+                    className="mt-auto mb-8 relative rounded-3xl px-4 py-2 border border-dashed border-neutral-600 flex justify-center gap-2 w-36 items-center overflow-hidden cursor-pointer hover:border-blue-500 transition-colors"
+                    title="Start Platform Tour"
+                >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="#60A5FA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M12 16V12M12 8H12.01" stroke="#60A5FA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    <div className="text-text-dark text-sm">Tour</div>
+                </button>
 
             </div>
 
