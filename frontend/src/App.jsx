@@ -73,7 +73,7 @@ if (isLoggedIn === null) return null;
         }
       />
 
-      {/* ---------------- PROJECT SETUP ---------------- */}
+      {/* --------------- PROJECT SETUP ---------------- */}
       <Route
         path="/project"
         element={
