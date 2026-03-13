@@ -19,10 +19,10 @@ const projectSchema = new mongoose.Schema(
     validate: {
       validator: function(value) {
         const wordCount = value.trim().split(/\s+/).length;
-        return wordCount >= 150;
+        return wordCount >= 100;
       },
       message: 'Description must be at least 150 words'
-    }
+    } 
   },
     domain: {
       type: String,

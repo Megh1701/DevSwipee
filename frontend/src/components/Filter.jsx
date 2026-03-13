@@ -1,40 +1,329 @@
-import React from "react";
-const Filter = ({light}) => {
-    return (
-        <>
-           <div className="h-auto w-auto flex items-center 
-                border rounded-2xl overflow-hidden
-                text-[var(--color-text-dark)] 
-                border-[var(--color-border-dark)] ">
+import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
-    {/* FILTER */}
-    <button className="p-3 flex items-center gap-2">
-        <svg
-            className="w-5 h-5 transition-colors duration-500"
-            viewBox="0 0 16 16"
-            xmlns="http://www.w3.org/2000/svg"
-            fill={light ? "black" : "white"}
+const Filter = ({ light, onApply }) => {
+  const [showFilter, setShowFilter] = useState(false);
+  const [filters, setFilters] = useState({
+    distance: 50,
+    gender: "",
+    domain: "",
+    city: ""
+  });
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFilters((prev) => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+ 
+  const applyFilter = () => {
+  if (typeof onApply === "function") {
+    onApply(filters);
+  } else {
+    console.error("onApply is not passed to Filter");
+  }
+
+  setShowFilter(false);
+};
+console.log("onApply:", onApply);
+  // Theme-based styles - Pure Black & White
+  const barBg = light ? "bg-white border-gray-200" : "bg-black border-gray-800";
+  const barText = light ? "text-black" : "text-white";
+  const barHover = light ? "hover:bg-gray-100" : "hover:bg-neutral-900";
+  const barShadow = light 
+    ? "shadow-sm hover:shadow-md" 
+    : "shadow-2xl hover:shadow-2xl";
+
+  const dropdownBg = light 
+    ? "bg-white border-gray-200 shadow-xl" 
+    : "bg-black border-gray-800 shadow-2xl";
+  const dropdownText = light ? "text-black" : "text-white";
+  const labelText = light ? "text-gray-700" : "text-gray-300";
+  const inputBg = light ? "bg-gray-100 border-gray-300" : "bg-neutral-900 border-gray-700";
+  const inputPlaceholder = light ? "placeholder-gray-500" : "placeholder-gray-600";
+  const inputFocus = light 
+    ? "focus:border-black focus:ring-black/10" 
+    : "focus:border-white focus:ring-white/20";
+
+  const containerVariants = {
+    hidden: { opacity: 0, y: -12, scale: 0.96 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: {
+        duration: 0.35,
+        ease: [0.4, 0, 0.2, 1]
+      }
+    },
+    exit: {
+      opacity: 0,
+      y: -12,
+      scale: 0.96,
+      transition: {
+        duration: 0.25,
+        ease: [0.4, 0, 0.2, 1]
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, x: -12 },
+    visible: (i) => ({
+      opacity: 1,
+      x: 0,
+      transition: {
+        duration: 0.35,
+        delay: i * 0.08,
+        ease: [0.4, 0, 0.2, 1]
+      }
+    })
+  };
+
+  const buttonVariants = {
+    hover: { 
+      x: 2,
+      transition: { duration: 0.2 }
+    },
+    tap: { scale: 0.92 }
+  };
+
+  return (
+    <div className="relative">
+      {/* FILTER BAR */}
+      <motion.div
+        className={`flex items-center gap-1 border rounded-xl overflow-hidden 
+          ${barBg} ${barText} ${barShadow} transition-shadow duration-300`}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.4 }}
+        whileHover={{ 
+          boxShadow: light 
+            ? "0 12px 24px rgba(0, 0, 0, 0.08)" 
+            : "0 20px 40px rgba(0, 0, 0, 0.4)"
+        }}
+      >
+        {/* FILTER BUTTON */}
+        <motion.button
+          onClick={() => setShowFilter(!showFilter)}
+          className={`px-5 py-3 flex items-center gap-2.5 ${barHover} 
+            transition-all duration-200 relative group`}
+          variants={buttonVariants}
+          whileHover="hover"
+          whileTap="tap"
         >
-           <path fill-rule="evenodd" clip-rule="evenodd" d="M14.535 1.71H13.5341C13.182 0.713763 12.2318 0 11.115 0C9.9982 0 9.04804 0.713763 8.69595 1.71H0.855C0.382801 1.71 0 2.0928 0 2.565C0 3.0372 0.382801 3.42 0.855 3.42H8.69595C9.04804 4.41624 9.9982 5.13 11.115 5.13C12.2318 5.13 13.182 4.41624 13.5341 3.42H14.535C15.0072 3.42 15.39 3.0372 15.39 2.565C15.39 2.0928 15.0072 1.71 14.535 1.71ZM11.115 3.42C11.5872 3.42 11.97 3.0372 11.97 2.565C11.97 2.0928 11.5872 1.71 11.115 1.71C10.6428 1.71 10.26 2.0928 10.26 2.565C10.26 3.0372 10.6428 3.42 11.115 3.42ZM0 7.695C0 7.22278 0.382801 6.84 0.855 6.84H1.85596C2.20807 5.84376 3.15818 5.13 4.275 5.13C5.39182 5.13 6.34196 5.84376 6.69405 6.84H14.535C15.0072 6.84 15.39 7.22278 15.39 7.695C15.39 8.16722 15.0072 8.55 14.535 8.55H6.69405C6.34196 9.54625 5.39182 10.26 4.275 10.26C3.15818 10.26 2.20807 9.54625 1.85596 8.55H0.855C0.382801 8.55 0 8.16722 0 7.695ZM4.275 8.55C4.74721 8.55 5.13 8.16722 5.13 7.695C5.13 7.22278 4.74721 6.84 4.275 6.84C3.8028 6.84 3.42 7.22278 3.42 7.695C3.42 8.16722 3.8028 8.55 4.275 8.55ZM0.855 11.97C0.382801 11.97 0 12.3528 0 12.825C0 13.2972 0.382801 13.68 0.855 13.68H8.69595C9.04804 14.6762 9.9982 15.39 11.115 15.39C12.2318 15.39 13.182 14.6762 13.5341 13.68H14.535C15.0072 13.68 15.39 13.2972 15.39 12.825C15.39 12.3528 15.0072 11.97 14.535 11.97H13.5341C13.182 10.9738 12.2318 10.26 11.115 10.26C9.9982 10.26 9.04804 10.9738 8.69595 11.97H0.855ZM11.97 12.825C11.97 13.2972 11.5872 13.68 11.115 13.68C10.6428 13.68 10.26 13.2972 10.26 12.825C10.26 12.3528 10.6428 11.97 11.115 11.97C11.5872 11.97 11.97 12.3528 11.97 12.825Z"   fill={light ? "black" : "white"} />
-        </svg>
-        <span className="text-sm">Filter</span>
-    </button>
+          <motion.span
+            animate={{ rotate: showFilter ? 90 : 0 }}
+            transition={{ duration: 0.4, ease: "easeInOut" }}
+            className="inline-block text-lg"
+          >
+            ⚙️
+          </motion.span>
+          <span className="text-sm font-semibold">Filter</span>
+          <motion.div
+            className={`absolute bottom-0 left-0 h-0.5 ${light ? "bg-black" : "bg-white"}`}
+            animate={{ width: showFilter ? "100%" : "0%" }}
+            transition={{ duration: 0.3 }}
+          />
+        </motion.button>
 
-    {/* DIVIDER LINE */}
-    <div className="h-8 w-[1px] bg-[var(--color-border-dark)] mx-1 mask-t-from-50% mask-b-from-50%"></div>
+        <div className={`h-6 w-px ${light ? "bg-gray-300" : "bg-gray-700"} opacity-40`} />
 
-    {/* POPULARITY */}
-    <button className="p-3 flex items-center gap-2">
-        <span className="text-base">⭐️</span>
-        <span className="text-sm">Popularity</span>
-    </button>
+        <motion.button
+          className={`px-5 py-3 flex items-center gap-2.5 ${barHover} 
+            transition-all duration-200`}
+          variants={buttonVariants}
+          whileHover="hover"
+          whileTap="tap"
+        >
+          <motion.span
+            animate={{ y: [0, -4, 0] }}
+            transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+            className="inline-block text-lg"
+          >
+            ✨
+          </motion.span>
+          <span className="text-sm font-semibold">Popular</span>
+        </motion.button>
+      </motion.div>
 
-</div>
+      {/* BACKDROP */}
+      <AnimatePresence>
+        {showFilter && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={() => setShowFilter(false)}
+            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
+          />
+        )}
+      </AnimatePresence>
 
-        </>
-    );
-}
+      {/* FILTER DROPDOWN */}
+      <AnimatePresence>
+        {showFilter && (
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            className={`absolute top-16 -left-20
+              ${dropdownBg} ${dropdownText}
+              p-6 rounded-xl w-96 border
+              backdrop-blur-xl z-[100]`}
+          >
+            {/* Header */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.1 }}
+            >
+              <h3 className="text-base font-bold mb-5 flex items-center gap-2">
+                <span className="text-lg">🔍</span>
+                Refine Your Search
+              </h3>
+              <div className={`h-px w-full ${light ? "bg-gray-200" : "bg-gray-800"} mb-5`} />
+            </motion.div>
 
+            {/* DISTANCE */}
+          {/* DISTANCE */}
+<motion.div
+  custom={0}
+  variants={itemVariants}
+  initial="hidden"
+  animate="visible"
+  className="mb-5"
+>
+  <label className={`text-xs font-bold uppercase tracking-wider ${labelText} block mb-2.5`}>
+    Max Distance: {filters.distance} km
+  </label>
 
+  <input
+    type="range"
+    name="distance"
+    min={0}
+    max={100}
+    value={filters.distance}
+    onChange={(e) =>
+      setFilters((prev) => ({
+        ...prev,
+        distance: Number(e.target.value)
+      }))
+    }
+    className="w-full h-1.5 cursor-pointer appearance-none rounded-lg
+      [&::-webkit-slider-runnable-track]:h-1.5
+      [&::-webkit-slider-runnable-track]:rounded-lg
+      [&::-webkit-slider-runnable-track]:bg-gradient-to-r
+      [&::-webkit-slider-runnable-track]:from-blue-500
+      [&::-webkit-slider-runnable-track]:to-[#c3c3c3]
+      [&::-webkit-slider-runnable-track]:bg-[length:var(--range-progress)_100%]
+      [&::-webkit-slider-runnable-track]:bg-no-repeat
+      [&::-webkit-slider-thumb]:appearance-none
+      [&::-webkit-slider-thumb]:h-4
+      [&::-webkit-slider-thumb]:w-2
+      [&::-webkit-slider-thumb]:rounded-2xl
+      [&::-webkit-slider-thumb]:bg-[var(--thumb-color)]
+      [&::-webkit-slider-thumb]:mt-[-6px]"
+    style={{
+      "--range-progress": `${filters.distance}%`,
+      "--thumb-color": light ? "black" : "white"
+    }}
+  />
+</motion.div>
+            {/* GENDER */}
+            <motion.div custom={1} variants={itemVariants} initial="hidden" animate="visible" className="mb-5">
+              <label className={`text-xs font-bold uppercase tracking-wider ${labelText} block mb-2.5`}>
+                Gender
+              </label>
+              <motion.select
+                name="gender"
+                value={filters.gender}
+                onChange={handleChange}
+                className={`w-full px-4 py-2.5 rounded-lg ${inputBg} border
+                  hover:border-opacity-60 ${inputFocus} outline-none 
+                  transition-all duration-200 text-sm font-medium ${dropdownText}`}
+                whileFocus={{ scale: 1.02 }}
+              >
+                <option value="">Any Gender</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+              </motion.select>
+            </motion.div>
+
+            {/* DOMAIN */}
+            <motion.div custom={2} variants={itemVariants} initial="hidden" animate="visible" className="mb-5">
+              <label className={`text-xs font-bold uppercase tracking-wider ${labelText} block mb-2.5`}>
+                Domain
+              </label>
+              <motion.input
+                type="text"
+                name="domain"
+                value={filters.domain}
+                onChange={handleChange}
+                placeholder="e.g., Technology"
+                className={`w-full px-4 py-2.5 rounded-lg ${inputBg} border
+                  hover:border-opacity-60 ${inputFocus} outline-none 
+                  transition-all duration-200 text-sm font-medium ${inputPlaceholder}`}
+                whileFocus={{ scale: 1.02 }}
+              />
+            </motion.div>
+
+            {/* CITY */}
+            <motion.div custom={3} variants={itemVariants} initial="hidden" animate="visible" className="mb-6">
+              <label className={`text-xs font-bold uppercase tracking-wider ${labelText} block mb-2.5`}>
+                City
+              </label>
+              <motion.input
+                type="text"
+                name="city"
+                value={filters.city}
+                onChange={handleChange}
+                placeholder="e.g., San Francisco"
+                className={`w-full px-4 py-2.5 rounded-lg ${inputBg} border
+                  hover:border-opacity-60 ${inputFocus} outline-none 
+                  transition-all duration-200 text-sm font-medium ${inputPlaceholder}`}
+                whileFocus={{ scale: 1.02 }}
+              />
+            </motion.div>
+
+            {/* DIVIDER */}
+            <motion.div
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: 1 }}
+              transition={{ delay: 0.4 }}
+              className={`h-px w-full ${light ? "bg-gray-200" : "bg-gray-800"} mb-5`}
+            />
+
+            {/* APPLY BUTTON */}
+            <motion.button
+              onClick={applyFilter}
+              custom={4}
+              variants={itemVariants}
+              initial="hidden"
+              animate="visible"
+              className={`w-full ${light ? "bg-black hover:bg-neutral-600 text-white" : "bg-white hover:bg-gray-100 text-black"} 
+                px-4 py-3 rounded-lg font-bold text-sm cursor-pointer
+                transition-all duration-200 shadow-lg hover:shadow-xl`}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.96 }}
+            >
+              <motion.div
+                className="flex items-center justify-center gap-2 "
+                
+              >
+                <span>Apply Filters</span>
+              </motion.div>
+            </motion.button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
 
 export default Filter;

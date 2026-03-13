@@ -1,26 +1,38 @@
-import React from "react";
+import React, { useState } from "react";
 import Sidebar from "../components/sidebar";
-import Hero from "../components/Filter.jsx";
 import Filter from "../components/Filter.jsx";
-import ProjectCard from '../components/ProjectCard.jsx';
 import CardFeed from "../components/CardFeed.jsx";
 import SwipeButton from "../components/SwipeButton.jsx";
+
 const Home = ({ light }) => {
-    return (
-        <>
-            <div className="w-full h-full bg-bg-dark flex">
 
-                <div className="relative flex-1 flex justify-center items-center flex-col gap-10">
+  const [filters, setFilters] = useState({
+    distance: 50,
+    gender: "",
+    domain: "",
+    city: ""
+  });
 
-                    <Filter light={light}></Filter>
-                    <CardFeed light={light} />
-                    <SwipeButton light={light} ></SwipeButton>
-                </div>
+  return (
+    <>
+      <div className="w-full h-full bg-bg-dark flex">
 
-            </div>
-        </>
-    );
+        <div className="relative flex-1 flex justify-center items-center flex-col gap-10">
 
+          {/* FILTER */}
+          <Filter light={light} onApply={setFilters} />
+
+          {/* CARD FEED */}
+          <CardFeed light={light} filters={filters} />
+
+          {/* SWIPE BUTTONS */}
+          <SwipeButton light={light} />
+
+        </div>
+
+      </div>
+    </>
+  );
 };
 
 export default Home;

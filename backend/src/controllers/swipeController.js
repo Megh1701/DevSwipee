@@ -1,37 +1,65 @@
 
 import SwipeModel from "../models/SwipeModel.js";
 import ProjectModel from "../models/ProjectModel.js"
+
+
 export const SwipeHandler = async (req, res) => {
   try {
-    const swiperId = req.user.id;         // who is swiping
-    const { projectId, ownerId, direction } = req.body; // project they swipe on
+    const swiperId = req.user.id;
+    const { projectId, ownerId, direction } = req.body;
 
+    // ⭐ Prevent duplicate swipe same project
+    const alreadySwiped = await SwipeModel.findOne({ swiperId, projectId });
+
+    if (alreadySwiped) {
+      return res.status(400).json({
+        success: false,
+        message: "You already swiped this project",
+      });
+    }
+
+    // ⭐ Swipe limit logic (unique projects in last 24h)
+    const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    const uniqueSwipes = await SwipeModel.distinct("projectId", {
+      swiperId,
+      createdAt: { $gte: last24Hours },
+    });
+
+    if (uniqueSwipes.length >= 2) {   // change to 10 later
+      return res.status(403).json({
+        success: false,
+        message: "Daily swipe limit reached",
+      });
+    }
+
+    // ⭐ Your existing logic
     const isRightSwipe = Number(direction) === 1;
     const swipeStatus = isRightSwipe ? "interested" : "ignore";
 
     const swiperProject = await ProjectModel.findOne({ userId: swiperId });
     const swiperProjectId = swiperProject?._id;
 
-    const swipe = await SwipeModel.findOneAndUpdate(
-      { swiperId, projectId },
-      {
-        swiperId,
-        ownerId,
-        projectId,         
-        swiperProjectId,   
-        direction: isRightSwipe,
-        status: swipeStatus,
-      },
-      { upsert: true, new: true }
-    );
+    const swipe = await SwipeModel.create({
+      swiperId,
+      ownerId,
+      projectId,
+      swiperProjectId,
+      direction: isRightSwipe,
+      status: swipeStatus,
+    });
 
-    res.json({ success: true, swipe });
+    res.json({
+      success: true,
+      swipe,
+      remainingSwipes: 2 - (uniqueSwipes.length + 1),
+    });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false });
   }
 };
-
 
 export const getMyRequests = async (req, res) => {
   try {
@@ -39,7 +67,7 @@ export const getMyRequests = async (req, res) => {
 
     const swipes = await SwipeModel.find({
       ownerId: userId,
-      status: "interested", 
+      status: "interested",
     })
       .populate("ownerId", "name avatar")     // you 
       .populate("swiperId", "name avatar")    // who liked you
@@ -51,7 +79,7 @@ export const getMyRequests = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      swipes, 
+      swipes,
     });
   } catch (error) {
     console.error("getMyRequests error:", error);
@@ -64,15 +92,15 @@ export const getMyRequests = async (req, res) => {
 
 export const listMySwipes = async (req, res) => {
   try {
-   
-console.log("Cookies:", req.cookies);
-console.log("User:", req.user);
- const userId = req.user.id;
-    const myswipes = await SwipeModel.find({ swiperId: userId,direction: true, })
+
+    console.log("Cookies:", req.cookies);
+    console.log("User:", req.user);
+    const userId = req.user.id;
+    const myswipes = await SwipeModel.find({ swiperId: userId, direction: true, })
       .select("status createdAt")
       .populate("ownerId", "name avatar")
       .populate("projectId", "title stack description domain thumbnailUrl githubUrl liveDemoUrl");
-      
+
 
     if (!myswipes.length) {
       return res.json({ success: true, message: "You haven’t swiped any projects yet", swipes: [] });

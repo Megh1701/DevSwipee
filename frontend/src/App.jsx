@@ -44,6 +44,7 @@ export default function App() {
     };
     checkAuth();
   }, []);
+  
 
   const toggleTheme = () => {
     const audio = new Audio("/sounds/mixkit-on-or-off-light-switch-tap-2585.wav");
@@ -108,7 +109,7 @@ if (isLoggedIn === null) return null;
                   element={<Home light={light}  />}
                 />
                 <Route path="swipes" element={<Swipes light={light} />} />
-                <Route path="messages" lement={<Messages light={light}/>} />
+                <Route path="messages" element={<Messages light={light}/>} />
                 <Route path="chat/:matchId" element={<ChatRoom light={light}/>} />
                 <Route path="requests" element={<Request light={light} />} />
                 <Route path="ats-dashboard" element={<ATSDashboard light={light} />} />

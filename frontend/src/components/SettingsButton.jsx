@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useProfile } from "@/context/profileData"
 import api from "@/lib/axios"
 import { useNavigate } from "react-router-dom"
+import { toast } from "sonner"
 
 
 export default function SettingsButton({ light, avatar, setAvatar, avatarArray, setIsLoggedIn, className = "" }) {
@@ -44,6 +45,41 @@ export default function SettingsButton({ light, avatar, setAvatar, avatarArray, 
     setProfile(prev => ({ ...prev, [name]: value }))
   }
 
+  const handleSave = async () => {
+  try {
+    const updatedData = {
+      name: profile.name,
+      email: profile.email,
+      city: profile.city,
+      interests: profile.interests,
+      avatar: profile.avatar,
+      age: profile.age,
+      gender: profile.gender,
+      distance: profile.distance
+    };
+
+    const res = await api.patch(
+      "/api/profiledata",
+      updatedData,
+      { withCredentials: true }
+    );
+
+    console.log("Profile updated successfully");
+    toast.success("Profile updated successfully")
+    const user = res.data.user || res.data;
+
+    setProfile(prev => ({
+      ...prev,
+      ...user
+    }));
+
+  } catch (error) {
+    console.error(
+      "Update failed:",
+      error.response?.data?.message || error.message
+    );
+  }
+};
   const handleInterestToggle = (interest) => {
     setProfile((prev) => {
       const alreadySelected = prev.interests.includes(interest);
@@ -349,10 +385,10 @@ export default function SettingsButton({ light, avatar, setAvatar, avatarArray, 
                   </button>
 
                   <button
-                    onClick={() => setVisible(false)}
+                    onClick={handleSave}
                     className="w-1/2 py-3 bg-blue-400 text-black
-                    rounded-full font-semibold tracking-wide
-                    hover:bg-cyan-300 transition-all"
+  rounded-full font-semibold tracking-wide
+  hover:bg-cyan-300 transition-all"
                   >
                     Done
                   </button>

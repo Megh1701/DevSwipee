@@ -1,4 +1,5 @@
 import User from "../models/UserModel.js"
+import UserModel from "../models/UserModel.js";
 import UserInterest from "../models/UserInterestModel.js"
 
 export const fetchprofiledata = async (req, res) => {
@@ -32,19 +33,18 @@ export const fetchprofiledata = async (req, res) => {
 };
 
 export const updateprofiledata = async (req, res) => {
-    try {
+  try {
+    const userId = req.user.id;
 
-        const userId = req.user.id;
-        const user = await UserModel.findById(userId).updateOne
+    const updatedUser = await UserModel.findByIdAndUpdate(
+      userId,
+      { $set: req.body }, // only updates provided fields
+      { new: true }
+    );
 
-        if (!user) {
-            return res.status(404).json({ message: "Profile not found" });
-        }
-        console.log(user)
+    res.status(200).json(updatedUser);
 
-        res.status(200).json(user);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 };
-

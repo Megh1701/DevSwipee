@@ -27,9 +27,10 @@ const initializeSocket = (server) => {
           receiverId: data.receiverId,
           content: data.content,
         });
-
         // Send to everyone in room (including sender)
         io.to(data.matchId).emit("receiveMessage", message);
+
+       
 
       } catch (error) {
         console.error("Message error:", error);
