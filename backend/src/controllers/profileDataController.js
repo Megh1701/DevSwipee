@@ -12,15 +12,11 @@ export const fetchprofiledata = async (req, res) => {
         }
 
 
-        console.log("User ID:", userId);
-
         const interests = await UserInterest.find({ userId })
             .populate("interestId", "name");
 
-        console.log("Raw UserInterest:", interests);
-
         const interestList = interests.map(i => i.interestId.name);
-        console.log("----------->",interestList)
+        
         res.status(200).json({
             ...user.toObject(),
             interests: interestList,

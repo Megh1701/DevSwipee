@@ -1,43 +1,103 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { use, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send } from "lucide-react";
+import { Send, Wrench } from "lucide-react";
 import axios from "axios";
 import socket from "../socket/socket";
-import { useLocation } from "react-router-dom";
+import { set } from "zod";
 
 export default function PremiumChatRoom({ light }) {
   const { matchId } = useParams();
-
   const currentUserId = localStorage.getItem("userId");
-  const otherUserId = localStorage.getItem("otherUserId");
-  const location = useLocation();
-  const otherUser = location.state?.otherUser;
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState("");
   const [hasScrolled, setHasScrolled] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
-
+  const [isBuild, setIsBuild] = useState(false)
+  const [otherUser, setOtherUser] = useState(null);
+  const [otherUserId, setOtherUserId] = useState(null);
+  const [isInvite, setIsInvite] = useState([])
+  const [projectName, setProjectName] = useState("")
+  const [projectType, setProjectType] = useState("");
   const messagesEndRef = useRef(null);
   const scrollContainerRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+  const [session, setSession] = useState([])
+  const [activeSession, setActiveSession] = useState(null);
 
-  /* ---------------- THEME ---------------- */
+  useEffect(() => {
+    socket.on("sessionCreated", (session) => {
+      setActiveSession(session);  // 🔥 THIS triggers UI update
+    });
 
-  const bgMain = light ? "bg-gray-100 text-black" : "bg-neutral-950 text-white";
-  const headerBg = light
-    ? "bg-white text-black border-black/10"
-    : "bg-neutral-900/60 text-white border-white/5 backdrop-blur-lg";
-  const inputBg = light
-    ? "bg-white border-black/10 text-black"
-    : "bg-neutral-800/50 border-white/10 text-white";
-  const receivedBubble = light
-    ? "bg-white border border-black/10 text-black shadow"
-    : "bg-white/10 backdrop-blur-md border border-white/10 text-neutral-50 shadow-lg shadow-black/20";
-  const ownBubble =
-    "bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/20";
+    return () => socket.off("sessionCreated");
+  }, []);
 
-  /* ---------------- SOCKET ---------------- */
+
+  useEffect(() => {
+    if (!currentUserId) return;
+
+    socket.emit("joinUserRoom", currentUserId);
+  }, [currentUserId]);
+
+  useEffect(() => {
+    socket.on("newInvite", (newInvite) => {
+      console.log(newInvite)
+
+      setIsInvite((prev) => [...prev, newInvite])
+
+    })
+    return () => {
+      socket.off("newInvite");
+    };
+  }, [])
+
+  /* ---------------- FETCH MATCH META ---------------- */
+
+  useEffect(() => {
+    const fetchPendingInvites = async () => {
+      try {
+        const res = await axios.get(
+          "http://localhost:3000/api/session/pending",
+          { withCredentials: true }
+        );
+
+        setIsInvite(res.data.invites); // 🔥 this fills pending invites
+      } catch (err) {
+        console.log(err.response?.data);
+      }
+    };
+
+    fetchPendingInvites();
+  }, []);
+
+  useEffect(() => {
+    const fetchMeta = async () => {
+      try {
+        const res = await axios.get(
+          `http://localhost:3000/api/chat/${matchId}/meta`,
+          { withCredentials: true }
+        );
+
+        const match = res.data?.match;
+        if (!match) return;
+
+        const isUser1 =
+          match.user1Id._id.toString() === currentUserId;
+
+        const other = isUser1 ? match.user2Id : match.user1Id;
+
+        setOtherUser(other);
+        setOtherUserId(other._id);
+      } catch (err) {
+        console.error("Meta fetch failed", err);
+      }
+    };
+
+    if (matchId) fetchMeta();
+  }, [matchId, currentUserId]);
+
+  /* ---------------- SOCKET JOIN ---------------- */
 
   useEffect(() => {
     if (!matchId) return;
@@ -74,9 +134,9 @@ export default function PremiumChatRoom({ light }) {
           `http://localhost:3000/api/chat/${matchId}/messages`,
           { withCredentials: true }
         );
-        setMessages(res.data.messages || []);
+        setMessages(res.data?.messages || []);
       } catch (err) {
-        console.error("Failed to fetch messages:", err);
+        console.error("Message fetch failed", err);
       }
     };
 
@@ -90,13 +150,16 @@ export default function PremiumChatRoom({ light }) {
   }, [messages, isTyping]);
 
   const handleScroll = () => {
-    if (!scrollContainerRef.current) return;
-    const { scrollTop, scrollHeight, clientHeight } =
-      scrollContainerRef.current;
-    setHasScrolled(scrollHeight - scrollTop - clientHeight > 100);
+    const el = scrollContainerRef.current;
+    if (!el) return;
+
+    const isAwayFromBottom =
+      el.scrollHeight - el.scrollTop - el.clientHeight > 100;
+
+    setHasScrolled(isAwayFromBottom);
   };
 
-  /* ---------------- TYPING LOGIC ---------------- */
+  /* ---------------- TYPING ---------------- */
 
   const handleTypingChange = (value) => {
     setInputValue(value);
@@ -106,9 +169,8 @@ export default function PremiumChatRoom({ light }) {
       senderId: currentUserId,
     });
 
-    if (typingTimeoutRef.current) {
+    if (typingTimeoutRef.current)
       clearTimeout(typingTimeoutRef.current);
-    }
 
     typingTimeoutRef.current = setTimeout(() => {
       socket.emit("stopTyping", {
@@ -121,7 +183,15 @@ export default function PremiumChatRoom({ light }) {
   /* ---------------- SEND MESSAGE ---------------- */
 
   const handleSendMessage = () => {
-    if (!inputValue.trim()) return;
+    if (!inputValue.trim() || !otherUserId) return;
+
+    const tempMessage = {
+      _id: Date.now(),
+      senderId: currentUserId,
+      content: inputValue,
+    };
+
+    setMessages((prev) => [...prev, tempMessage]);
 
     socket.emit("sendMessage", {
       matchId,
@@ -145,24 +215,163 @@ export default function PremiumChatRoom({ light }) {
     }
   };
 
+
+  /* ---------------- SAFE LOADING ---------------- */
+
+  if (!otherUser) {
+    return (
+      <div className="h-screen flex items-center justify-center text-white">
+        Loading Chat...
+      </div>
+    );
+  }
+
+  const handleCreateSession = async () => {
+    if (!projectName.trim() || !projectType) return;
+    try {
+      const res = await axios.post(
+        "http://localhost:3000/api/session/invite",
+        {
+          projectName,
+          assignmentMode: projectType,
+          matchId,
+        },
+        { withCredentials: true }
+      );
+
+      console.log(res.data);
+
+      setIsBuild(false);
+      setProjectName("");
+      setProjectType("");
+    } catch (err) {
+      console.log(err.response?.data);
+    }
+  };
+
+
+
+  const acceptInvite = async (inviteId) => {
+    try {
+      const res = await axios.post(
+        "http://localhost:3000/api/session/respond",
+        {
+          inviteId,
+          status: "ACCEPTED",
+        },
+        { withCredentials: true }
+      );
+
+      console.log(res.data);
+
+      // optional: remove invite from UI
+      setIsInvite((prev) =>
+        prev.filter((i) => i._id !== inviteId)
+      );
+    } catch (err) {
+      console.error(err);
+    }
+  };
+  const rejectInvite = async (inviteId) => {
+    try {
+      await axios.post(
+        "http://localhost:3000/api/session/respond",
+        { inviteId, status: "REJECTED" },
+        { withCredentials: true }
+      );
+
+      setIsInvite((prev) =>
+        prev.filter((i) => i._id !== inviteId)
+      );
+    } catch (err) {
+      console.error(err);
+    }
+  };
+  /* ---------------- UI THEME ---------------- */
+
+  const bgMain = light
+    ? "bg-gray-100 text-black"
+    : "bg-neutral-950 text-white";
+
+  const receivedBubble = light
+    ? "bg-white border border-black/10 text-black shadow"
+    : "bg-white/10 border border-white/10";
+
+  const ownBubble =
+    "bg-gradient-to-br from-emerald-500 to-emerald-600 text-white";
+
   /* ---------------- RENDER ---------------- */
 
+  const handleProjectname = (e) => {
+    setProjectName(e.target.value)
+    console.log(projectName)
+  }
+  const InvitePopup = ({ invite }) => (
+    <motion.div
+      initial={{ opacity: 0, y: -40, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -20, scale: 0.95 }}
+      transition={{ duration: 0.25, ease: "easeOut" }}
+      className="w-[320px] bg-white text-black rounded-2xl shadow-2xl border p-4 flex flex-col gap-3"
+    >
+      {/* HEADER */}
+      <div>
+        <p className="text-sm font-semibold">
+          Collaboration Invite
+        </p>
+        <p className="text-xs text-gray-500 mt-1">
+          {otherUser?.name} invited you to collaborate
+        </p>
+      </div>
+
+      {/* PROJECT CARD */}
+      <div className="bg-gray-50 rounded-xl p-3 border">
+        <p className="text-xs text-gray-500">Project</p>
+        <p className="text-sm font-medium">
+          {invite.projectName}
+        </p>
+
+        <p className="text-xs text-gray-500 mt-2">Access</p>
+        <p className="text-xs font-medium">
+          {invite.assignmentMode.replace("_", " ")}
+        </p>
+      </div>
+
+      {/* ACTIONS */}
+      <div className="flex gap-2 mt-2">
+        <motion.button
+          whileTap={{ scale: 0.95 }}
+          whileHover={{ scale: 1.02 }}
+          onClick={() => acceptInvite(invite._id)}
+          className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white py-2 rounded-lg text-sm font-medium transition"
+        >
+          Accept
+        </motion.button>
+
+        <motion.button
+          whileTap={{ scale: 0.95 }}
+          whileHover={{ scale: 1.02 }}
+          onClick={() => rejectInvite(invite._id)}
+          className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 rounded-lg text-sm font-medium transition"
+        >
+          Decline
+        </motion.button>
+      </div>
+
+      {/* FOOTER */}
+      <p className="text-[11px] text-gray-400 text-center mt-1">
+        You can respond later from notifications
+      </p>
+    </motion.div>
+  );
   return (
     <div className={`flex flex-col h-screen ${bgMain}`}>
       {/* HEADER */}
-      <motion.div
-        className={`px-6 py-4 border-b ${hasScrolled ? "shadow-lg" : ""
-          } ${headerBg}`}
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-      >
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-xl font-semibold">
-            {otherUser?.name || "Chat"}
-          </h1>
-          <p className="text-sm text-emerald-400/70">Online</p>
-        </div>
-      </motion.div>
+      <div className="px-6 py-4 border-b">
+        <h1 className="text-xl font-semibold">
+          {otherUser.name}
+        </h1>
+      </div>
 
       {/* MESSAGES */}
       <div
@@ -170,102 +379,173 @@ export default function PremiumChatRoom({ light }) {
         onScroll={handleScroll}
         className="flex-1 overflow-y-auto p-6 space-y-4"
       >
-        <div className="max-w-4xl mx-auto w-full space-y-4">
-          <AnimatePresence>
-            {messages.map((msg) => {
-              const isOwn =
-                msg.senderId === currentUserId ||
-                msg.senderId?._id === currentUserId;
+        <AnimatePresence>
+          {messages.map((msg) => {
+            const isOwn =
+              msg.senderId === currentUserId ||
+              msg.senderId?._id === currentUserId;
 
-              return (
-                <motion.div
-                  key={msg._id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.25 }}
-                  className={`flex ${isOwn ? "justify-end" : "justify-start"
-                    }`}
-                >
-                  <motion.div
-                    whileHover={{ scale: 1.02, y: -2 }}
-                    className={`px-4 py-3 rounded-2xl max-w-xs lg:max-w-md text-sm ${isOwn
-                        ? `${ownBubble} rounded-br-sm`
-                        : `${receivedBubble} rounded-bl-sm`
-                      }`}
-                  >
-                    {msg.content}
-                  </motion.div>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
-
-          {/* TYPING INDICATOR */}
-          <AnimatePresence>
-            {isTyping && (
+            return (
               <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 10 }}
-                transition={{ duration: 0.2 }}
-                className="flex justify-start"
+                key={msg._id}
+                className={`flex ${isOwn ? "justify-end" : "justify-start"
+                  }`}
               >
                 <div
-                  className={`${receivedBubble} px-4 py-3 rounded-2xl rounded-bl-sm flex gap-1 items-center`}
+                  className={`px-4 py-3 rounded-2xl max-w-xs ${isOwn ? ownBubble : receivedBubble
+                    }`}
                 >
-                  {[0, 1, 2].map((dot) => (
-                    <motion.span
-                      key={dot}
-                      className="w-2 h-2 bg-emerald-400 rounded-full"
-                      animate={{ y: [0, -4, 0] }}
-                      transition={{
-                        duration: 0.6,
-                        repeat: Infinity,
-                        delay: dot * 0.2,
-                      }}
-                    />
-                  ))}
+                  {msg.content}
                 </div>
               </motion.div>
-            )}
-          </AnimatePresence>
+            );
+          })}
+        </AnimatePresence>
 
-          <div ref={messagesEndRef} />
-        </div>
+        {isTyping && (
+          <div className="text-sm opacity-70">
+            typing...
+          </div>
+        )}
+
+        <div ref={messagesEndRef} />
       </div>
+      {activeSession && (
+        <div
+          className="p-3 bg-green-100 border rounded cursor-pointer"
+          onClick={() => navigate(`/session/${activeSession._id}`)}
+        >
+          🚀 You both started: {activeSession.projectName}
+        </div>
+      )}
 
       {/* INPUT */}
-      <motion.div
-        className={`px-6 py-4 border-t ${light
-            ? "bg-white border-black/10"
-            : "bg-neutral-900/60 border-white/5 backdrop-blur-lg"
-          }`}
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-      >
-        <div className="max-w-4xl mx-auto flex gap-3">
-          <motion.input
-            type="text"
-            value={inputValue}
-            onChange={(e) => handleTypingChange(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Type a message..."
-            whileFocus={{ scale: 1.02 }}
-            className={`flex-1 px-4 py-3 rounded-2xl border focus:outline-none focus:ring-2 focus:ring-emerald-500/50 ${inputBg}`}
-          />
+      <div className="p-4 border-t flex gap-3">
 
-          <motion.button
-            onClick={handleSendMessage}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            disabled={!inputValue.trim()}
-            className="px-4 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-2xl text-white disabled:opacity-50 flex items-center"
-          >
-            <Send size={18} />
-          </motion.button>
-        </div>
-      </motion.div>
+        {/* TRIGGER */}
+        <button
+          onClick={() => setIsBuild(true)}
+          className={`flex items-center gap-2 cursor-pointer border rounded-md p-2
+    ${light ? "bg-white text-black border-gray-300 hover:bg-gray-50"
+              : "bg-zinc-900 text-white border-zinc-700 hover:bg-zinc-800"}
+  `}
+        >
+          <Wrench />
+          <span>Build Together</span>
+        </button>
+
+        {/* OVERLAY + PANEL */}
+        <AnimatePresence>
+          {isBuild && (
+            <>
+              {/* BACKDROP */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsBuild(false)}
+                className="fixed inset-0 z-40 bg-black/40"
+              />
+
+              {/* SIDE PANEL */}
+              <motion.div
+                initial={{ x: 400, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: 400, opacity: 0 }}
+                transition={{ type: "spring", stiffness: 260, damping: 25 }}
+                className={`fixed right-0 top-0 h-full w-[380px] z-50 p-5 flex flex-col gap-4 border-l
+          ${light
+                    ? "bg-white text-black border-gray-200"
+                    : "bg-zinc-950 text-white border-zinc-800"}
+        `}
+              >
+                {/* HEADER */}
+                <div>
+                  <h2 className="text-lg font-semibold">
+                    Create Collaboration Session
+                  </h2>
+                  <p className="text-sm opacity-70">
+                    Build Together
+                  </p>
+                </div>
+
+                {/* FORM */}
+                <div className="flex flex-col gap-3 mt-4">
+                  <label className="text-xs opacity-60" >
+                    Project Name
+                  </label>
+
+                  <input
+                    type="text"
+                    placeholder="My Awesome Project"
+                    onChange={handleProjectname}
+                    className={`px-3 py-2 rounded-md border outline-none
+              ${light
+                        ? "bg-gray-50 border-gray-300 text-black focus:bg-white"
+                        : "bg-zinc-900 border-zinc-700 text-white focus:bg-zinc-800"}
+            `}
+                  />
+
+                  <label className="text-xs opacity-60 mt-2">
+                    Task Assignment Policy
+                  </label>
+
+                  <select
+                    value={projectType}
+                    onChange={(e) => setProjectType(e.target.value)}
+                    className={`px-3 py-2 rounded-md border
+    ${light
+                        ? "bg-gray-50 border-gray-300 text-black"
+                        : "bg-zinc-900 border-zinc-700 text-white"}
+  `}
+                  >
+                    <option value="ANYONE">Anyone can assign tasks</option>
+                    <option value="OWNER_ONLY">Only owner assigns tasks</option>
+                    <option value="SELF_ONLY">Self-assign only</option>
+                  </select>
+                </div>
+
+                {/* ACTION */}
+                <button
+                  onClick={handleCreateSession}
+                  className={`mt-auto py-2 rounded-md font-medium transition
+            ${light
+                      ? "bg-black text-white hover:bg-gray-800"
+                      : "bg-white text-black hover:bg-gray-200"}
+          `}
+                >
+                  Create Session
+                </button>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+        <input
+          value={inputValue}
+          onChange={(e) =>
+            handleTypingChange(e.target.value)
+          }
+          onKeyDown={handleKeyDown}
+          className="flex-1 border px-4 py-2 rounded-xl"
+          placeholder="Type message..."
+        />
+
+        <button
+          onClick={handleSendMessage}
+          className="px-4 py-2 bg-emerald-500 text-white rounded-xl"
+        >
+          <Send size={18} />
+        </button>
+      </div>
+      <div className="fixed top-4 right-4 space-y-3 z-50">
+        <AnimatePresence>
+          {isInvite.map((invite) => (
+            <InvitePopup key={invite._id} invite={invite} />
+          ))}
+        </AnimatePresence>
+      </div>
     </div>
+
+
   );
 }

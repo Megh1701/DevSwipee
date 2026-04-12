@@ -69,3 +69,30 @@ export const getMyChats = async (req, res) => {
     res.status(500).json({ success: false });
   }
 };
+
+export const getChatMeta = async (req, res) => {
+  try {
+    const { matchId } = req.params;
+    const userId = req.user.id;
+
+    const match = await MatchModel.findById(matchId)
+      .populate("user1Id", "name avatar")
+      .populate("user2Id", "name avatar");
+
+    if (!match) {
+      return res.status(404).json({ success: false });
+    }
+
+    if (
+      match.user1Id._id.toString() !== userId &&
+      match.user2Id._id.toString() !== userId
+    ) {
+      return res.status(403).json({ success: false });
+    }
+
+    res.json({ success: true, match });
+
+  } catch (err) {
+    res.status(500).json({ success: false });
+  }
+};

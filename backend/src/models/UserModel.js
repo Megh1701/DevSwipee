@@ -11,7 +11,14 @@ const userSchema = new mongoose.Schema(
     avatar: String,
     city: String,
     verified: { type: Boolean, default: false },
-
+    dailySwipeCount: {
+      type: Number,
+      default: 0,
+    },
+    swipeResetAt: {
+      type: Date,
+      default: Date.now,
+    },
     // relations
     projects: [{ type: mongoose.Schema.Types.ObjectId, ref: "Project" }],
 

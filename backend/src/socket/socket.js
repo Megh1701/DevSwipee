@@ -1,8 +1,10 @@
 import { Server } from "socket.io";
 import ChatModel from "../models/ChatModel.js";
 
-const initializeSocket = (server) => {
-  const io = new Server(server, {
+let io; // 🔥 global singleto
+// INIT SOCK
+export  const initializeSocket = (server) => {
+  io = new Server(server, {
     cors: {
       origin: "http://localhost:5173",
       credentials: true,
@@ -12,10 +14,16 @@ const initializeSocket = (server) => {
   io.on("connection", (socket) => {
     console.log("User connected:", socket.id);
 
-    // JOIN ROOM
+    // JOIN CHAT ROOM (MATCH)
     socket.on("joinRoom", (matchId) => {
       socket.join(matchId);
-      console.log("Joined room:", matchId);
+      console.log(`Joined match room: ${matchId}`);
+    });
+
+    // JOIN USER ROOM (NOTIFICATIONS)
+    socket.on("joinUserRoom", (userId) => {
+      socket.join(userId);
+      console.log(`Joined user room: ${userId}`);
     });
 
     // SEND MESSAGE
@@ -27,30 +35,34 @@ const initializeSocket = (server) => {
           receiverId: data.receiverId,
           content: data.content,
         });
-        // Send to everyone in room (including sender)
+
         io.to(data.matchId).emit("receiveMessage", message);
-
-       
-
-      } catch (error) {
-        console.error("Message error:", error);
+      } catch (err) {
+        console.error("Message error:", err);
       }
     });
 
-    // 🟢 USER TYPING
+    // TYPING
     socket.on("typing", ({ matchId, senderId }) => {
       socket.to(matchId).emit("userTyping", senderId);
     });
 
-    // 🔴 USER STOP TYPING
     socket.on("stopTyping", ({ matchId, senderId }) => {
       socket.to(matchId).emit("userStoppedTyping", senderId);
     });
 
+    // DISCONNECT
     socket.on("disconnect", () => {
       console.log("User disconnected:", socket.id);
     });
   });
-};
 
-export default initializeSocket;
+  return io;
+};
+// GET IO INSTANCE
+export const getIO = () => {
+  if (!io) {
+    throw new Error("Socket not initialized. Call initializeSocket(server) first.");
+  }
+  return io;
+};

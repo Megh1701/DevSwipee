@@ -31,6 +31,10 @@ const swipeSchema = new mongoose.Schema(
       enum: ["ignore", "interested", "accepted", "rejected"],
      
     },
+    isPremium: {
+      type: Boolean,
+      default: false,
+    },
   
 
   },

@@ -17,7 +17,10 @@ const startServer = async () => {
   const matchesRouter = (await import("./src/routes/matchesRoutes.js")).default;
   const chatRoutes = (await import("./src/routes/chatRoutes.js")).default;
   const atsRoutes = (await import("./src/routes/atsRoutes.js")).default;
-  const initializeSocket = (await import("./src/socket/socket.js")).default;
+  const InviteSession = (await import("./src/routes/invitesessionRoutes.js")).default;
+  const socketModule = await import("./src/socket/socket.js");
+
+  const initializeSocket = socketModule.initializeSocket;
 
   await connectDB();
 
@@ -47,6 +50,9 @@ const startServer = async () => {
   // 🔥 Initialize Socket (separate file)
   initializeSocket(server);
 
+
+  app.use("/api/session", InviteSession);
+app.use("/api/session", InviteSession);
   server.listen(3000, () =>
     console.log("Server running on port 3000")
   );

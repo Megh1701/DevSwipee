@@ -1,62 +1,82 @@
-
+import UserModel from "../models/UserModel.js";
 import SwipeModel from "../models/SwipeModel.js";
-import ProjectModel from "../models/ProjectModel.js"
+import ProjectModel from "../models/ProjectModel.js";
 
+const DAILY_LIMIT = 10;
 
 export const SwipeHandler = async (req, res) => {
   try {
     const swiperId = req.user.id;
     const { projectId, ownerId, direction } = req.body;
 
-    // ⭐ Prevent duplicate swipe same project
-    const alreadySwiped = await SwipeModel.findOne({ swiperId, projectId });
+    if (!projectId || !ownerId || direction === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid swipe data",
+      });
+    }
 
+    // ⭐ prevent duplicate swipe
+    const alreadySwiped = await SwipeModel.findOne({ swiperId, projectId });
     if (alreadySwiped) {
       return res.status(400).json({
         success: false,
-        message: "You already swiped this project",
+        message: "Already swiped this project",
       });
     }
 
-    // ⭐ Swipe limit logic (unique projects in last 24h)
-    const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    // ⭐ fetch user (limiter source of truth)
+    const user = await UserModel.findById(swiperId);
+    if (!user) {
+      return res.status(404).json({ success: false });
+    }
 
-    const uniqueSwipes = await SwipeModel.distinct("projectId", {
-      swiperId,
-      createdAt: { $gte: last24Hours },
-    });
+    const now = new Date();
 
-    if (uniqueSwipes.length >= 2) {   // change to 10 later
+
+    if (now > user.swipeResetAt) {
+      user.dailySwipeCount = 0;
+      user.swipeResetAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    }
+
+    if (!user.isPremium && user.dailySwipeCount >= DAILY_LIMIT) {
       return res.status(403).json({
         success: false,
         message: "Daily swipe limit reached",
+        resetAt: user.swipeResetAt,
+        remainingSwipes: 0,
       });
     }
 
-    // ⭐ Your existing logic
     const isRightSwipe = Number(direction) === 1;
     const swipeStatus = isRightSwipe ? "interested" : "ignore";
 
     const swiperProject = await ProjectModel.findOne({ userId: swiperId });
-    const swiperProjectId = swiperProject?._id;
 
     const swipe = await SwipeModel.create({
       swiperId,
       ownerId,
       projectId,
-      swiperProjectId,
+      swiperProjectId: swiperProject?._id,
       direction: isRightSwipe,
       status: swipeStatus,
     });
 
+    
+    user.dailySwipeCount += 1;
+    await user.save();
+
     res.json({
       success: true,
       swipe,
-      remainingSwipes: 2 - (uniqueSwipes.length + 1),
+      remainingSwipes: user.isPremium
+        ? Infinity
+        : DAILY_LIMIT - user.dailySwipeCount,
+      resetAt: user.swipeResetAt,
     });
 
   } catch (err) {
-    console.error(err);
+    console.error("Swipe error:", err);
     res.status(500).json({ success: false });
   }
 };

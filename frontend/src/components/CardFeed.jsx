@@ -28,7 +28,7 @@ const CardFeed = ({ light, filters }) => {
   const [projects,     setProjects]     = useState([]);
   const [loading,      setLoading]      = useState(false);
   const [hasMore,      setHasMore]      = useState(true);
-  const [swipeBlocked, setSwipeBlocked] = useState(isBlocked);  // reads localStorage on mount
+  const [swipeBlocked, setSwipeBlocked] = useState(isBlocked);  
 
   const page       = useRef(0);
   const fetching   = useRef(false);
