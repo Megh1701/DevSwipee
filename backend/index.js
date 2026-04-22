@@ -52,7 +52,7 @@ const startServer = async () => {
 
 
   app.use("/api/session", InviteSession);
-app.use("/api/session", InviteSession);
+  
   server.listen(3000, () =>
     console.log("Server running on port 3000")
   );

@@ -81,7 +81,7 @@ const Sidebar = ({avatar}) => {
                         </svg>
                         <div className="absolute inset-x-0 h-px -bottom-0 w-full bg-gradient-to-r from-transparent via-blue-400 to-transparent"></div>
 
-                        <div className="text-text-dark">ATS Score</div>
+                        <div className="text-text-dark">Profile Score</div>
 
                     </button>
                 </Link>

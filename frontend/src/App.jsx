@@ -10,6 +10,7 @@ import ChatRoom from "./components/ChatRoom";
 import Request from "./components/Request";
 import ProjectForm from "./components/ProjectForm";
 import ATSDashboard from "./components/ATSDashboard";
+import Session from "./components/Session"
 import api from "./lib/axios";
 
 
@@ -32,7 +33,7 @@ export default function App() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const resp=await api.get("api/profiledata"); // requires auth
+        const resp = await api.get("api/profiledata"); // requires auth
         setAvatar(resp.data.avatar)
         console.log(avatar)
         setIsLoggedIn(true);
@@ -44,7 +45,7 @@ export default function App() {
     };
     checkAuth();
   }, []);
-  
+
 
   const toggleTheme = () => {
     const audio = new Audio("/sounds/mixkit-on-or-off-light-switch-tap-2585.wav");
@@ -53,74 +54,76 @@ export default function App() {
     document.body.classList.toggle("light");
     setLight((prev) => !prev);
   };
-if (isLoggedIn === null) return null; 
+  if (isLoggedIn === null) return null;
   return (
     <>
-        <Toaster theme="dark" richColors position="top-center" />
-    <Routes>
-      
-      {/* ---------------- AUTH ---------------- */}
-      <Route
-        path="/"
-        element={
-          !isLoggedIn ? (
-            <Auth
-              onLoginSuccess={() => setIsLoggedIn(true)}
-              onSignupSuccess={() => setNeedsProjectForm(true)}
-            />
-          ) : (
-            <Navigate to="/home" replace />
-          )
-        }
-      />
+      <Toaster theme="dark" richColors position="top-center" />
+      <Routes>
 
-      {/* --------------- PROJECT SETUP ---------------- */}
-      <Route
-        path="/project"
-        element={
-          needsProjectForm ? (
-            <ProjectForm
-              onComplete={() => {
-                setNeedsProjectForm(false);
-                setIsLoggedIn(true);
-              }}
-            />
-          ) : (
-            <Navigate to="/" replace />
-          )
-        }
-      />
+        {/* ---------------- AUTH ---------------- */}
+        <Route
+          path="/"
+          element={
+            !isLoggedIn ? (
+              <Auth
+                onLoginSuccess={() => setIsLoggedIn(true)}
+                onSignupSuccess={() => setNeedsProjectForm(true)}
+              />
+            ) : (
+              <Navigate to="/home" replace />
+            )
+          }
+        />
 
-      {/* ---------------- MAIN APP ---------------- */}
-      <Route
-        path="/*"
-        element={
-          isLoggedIn ? (
-            <AppLayout
-              light={light}
-              toggleTheme={toggleTheme}
-            avatar={avatar}
-              setAvatar={setAvatar}
-              avatarArray={avatarArray}
-            >
-              <Routes>
-                <Route
-                  path="home"
-                  element={<Home light={light}  />}
-                />
-                <Route path="swipes" element={<Swipes light={light} />} />
-                <Route path="messages" element={<Messages light={light}/>} />
-                <Route path="chat/:matchId" element={<ChatRoom light={light}/>} />
-                <Route path="requests" element={<Request light={light} />} />
-                <Route path="ats-dashboard" element={<ATSDashboard light={light} />} />
-              </Routes>
-            </AppLayout>
-          ) : (
-            <Navigate to="/" replace />
-          )
+        {/* --------------- PROJECT SETUP ---------------- */}
+        <Route
+          path="/project"
+          element={
+            needsProjectForm ? (
+              <ProjectForm
+                onComplete={() => {
+                  setNeedsProjectForm(false);
+                  setIsLoggedIn(true);
+                }}
+              />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+        {/*------session------*/
+          <Route path="/session/:sessionId" element={<Session />} />
         }
-      />
-    </Routes>
+        {/* ---------------- MAIN APP ---------------- */}
+        <Route
+          path="/*"
+          element={
+            isLoggedIn ? (
+              <AppLayout
+                light={light}
+                toggleTheme={toggleTheme}
+                avatar={avatar}
+                setAvatar={setAvatar}
+                avatarArray={avatarArray}
+              >
+                <Routes>
+                  <Route
+                    path="home"
+                    element={<Home light={light} />}
+                  />
+                  <Route path="swipes" element={<Swipes light={light} />} />
+                  <Route path="messages" element={<Messages light={light} />} />
+                  <Route path="chat/:matchId" element={<ChatRoom light={light} />} />
+                  <Route path="requests" element={<Request light={light} />} />
+                  <Route path="ats-dashboard" element={<ATSDashboard light={light} />} />
+                </Routes>
+              </AppLayout>
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+      </Routes>
     </>
   );
 }

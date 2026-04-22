@@ -5,8 +5,8 @@ import api from "@/lib/axios";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 
-const VISIBLE_CARDS  = 3;
-const PREFETCH_AT    = 2;
+const VISIBLE_CARDS = 3;
+const PREFETCH_AT = 2;
 
 // ── tiny helpers ──────────────────────────────────────────────
 const getSeenIds = () => {
@@ -15,66 +15,106 @@ const getSeenIds = () => {
 };
 const addSeenId = (id) => {
   const s = getSeenIds(); s.add(id);
-  try { localStorage.setItem("seen_ids", JSON.stringify([...s])); } catch {}
+  try { localStorage.setItem("seen_ids", JSON.stringify([...s])); } catch { }
 };
-const isBlocked  = () => localStorage.getItem("swipe_blocked") === "true";
-const setBlocked = () => localStorage.setItem("swipe_blocked", "true");
+const isBlocked = () => {
+  const blocked = localStorage.getItem("swipe_blocked");
+  const resetAt = localStorage.getItem("swipe_resetAt");
 
+  if (!blocked) return false;
+
+  if (resetAt && new Date() > new Date(resetAt)) {
+    localStorage.removeItem("swipe_blocked");
+    localStorage.removeItem("swipe_resetAt");
+    return false;
+  }
+
+  return true;
+};
+
+
+const setBlocked = (resetAt) => {
+  localStorage.setItem("swipe_blocked", "true");
+  if (resetAt) {
+    localStorage.setItem("swipe_resetAt", resetAt);
+  }
+};
 // ─────────────────────────────────────────────────────────────
 const CardFeed = ({ light, filters }) => {
   const { profile } = useProfile();
-  const navigate    = useNavigate();
+  const navigate = useNavigate();
 
-  const [projects,     setProjects]     = useState([]);
-  const [loading,      setLoading]      = useState(false);
-  const [hasMore,      setHasMore]      = useState(true);
-  const [swipeBlocked, setSwipeBlocked] = useState(isBlocked);  
-
-  const page       = useRef(0);
-  const fetching   = useRef(false);
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [swipeBlocked, setSwipeBlocked] = useState(() => isBlocked());
+  const [timeLeft, setTimeLeft] = useState("");
+  const page = useRef(0);
+  const fetching = useRef(false);
   const hasMoreRef = useRef(true);
 
+  useEffect(() => {
+    if (!swipeBlocked) return;
+
+    const interval = setInterval(() => {
+      const resetAt = localStorage.getItem("swipe_resetAt");
+      if (!resetAt) return;
+
+      const diff = new Date(resetAt) - new Date();
+
+      // ✅ UNBLOCK
+      if (diff <= 0) {
+        localStorage.removeItem("swipe_blocked");
+        localStorage.removeItem("swipe_resetAt");
+        setSwipeBlocked(false);
+        setTimeLeft("");
+        return;
+      }
+
+      // ✅ COUNTDOWN
+      const h = Math.floor(diff / (1000 * 60 * 60));
+      const m = Math.floor((diff / (1000 * 60)) % 60);
+      const s = Math.floor((diff / 1000) % 60);
+
+      setTimeLeft(`${h}h ${m}m ${s}s`);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [swipeBlocked]);
   // ── fetch ────────────────────────────────────────────────
-  const fetchProjects = useCallback(async () => {
-    if (fetching.current || !hasMoreRef.current) return;
-    fetching.current = true;
-    setLoading(true);
+const fetchProjects = useCallback(async () => {
+  if (fetching.current || !hasMoreRef.current) return;
 
-    try {
-      const { data } = await api.get("/api/feed", {
-        params: { page: page.current, ...filters },
-        withCredentials: true,
-      });
+  fetching.current = true;
+  setLoading(true);
 
-      if (!data?.length) {
-        hasMoreRef.current = false;
-        setHasMore(false);
-        return;
-      }
+  try {
+    const { data } = await api.get("/api/feed", {
+      params: { page: page.current, ...filters },
+      withCredentials: true,
+    });
 
-      // filter out already-seen cards
-      const fresh = data.filter((p) => !getSeenIds().has(p._id));
-      if (fresh.length) {
-        page.current += 1;
-        setProjects((prev) => [...prev, ...fresh]);
-      } else {
-        page.current += 1;
-        fetching.current = false;
-        setLoading(false);
-        fetchProjects();   // skip this page, try next
-        return;
-      }
-    } catch (err) {
-      if (err.response?.status === 401) navigate("/", { replace: true });
-    } finally {
-      fetching.current = false;
-      setLoading(false);
+    if (!data?.length) {
+      hasMoreRef.current = false;
+      setHasMore(false);
+      return;
     }
-  }, [filters, navigate]);
 
+    setProjects((prev) => [...prev, ...data]);
+    page.current += 1;
+
+  } catch (err) {
+    if (err.response?.status === 401) {
+      navigate("/", { replace: true });
+    }
+  } finally {
+    fetching.current = false;
+    setLoading(false);
+  }
+}, [filters, navigate]);
   // reset when filters change
   useEffect(() => {
-    page.current     = 0;
+    page.current = 0;
     hasMoreRef.current = true;
     fetching.current = false;
     setProjects([]);
@@ -84,12 +124,12 @@ const CardFeed = ({ light, filters }) => {
   // initial load (and after filter reset)
   useEffect(() => {
     if (projects.length === 0 && hasMore) fetchProjects();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasMore]);
 
   // ── swipe ────────────────────────────────────────────────
   const handleSwipe = useCallback(async (projectId, direction, ownerId) => {
-    if (swipeBlocked) return;
+
 
     // optimistic: remove card + remember it immediately
     addSeenId(projectId);
@@ -105,8 +145,9 @@ const CardFeed = ({ light, filters }) => {
       await api.post("/api/swipe", { projectId, ownerId, direction }, { withCredentials: true });
     } catch (err) {
       if (err.response?.status === 403 || err.response?.status === 429) {
-        setBlocked();           // persist
-        setSwipeBlocked(true);  // update UI
+        const resetAt = err.response?.data?.resetAt;
+        setBlocked(resetAt);        // ✅ store expiry
+        setSwipeBlocked(true);
       }
     }
   }, [swipeBlocked, fetchProjects]);
@@ -141,7 +182,9 @@ const CardFeed = ({ light, filters }) => {
       {swipeBlocked && (
         <div className="fixed top-0 right-0 h-screen w-[75%] bg-black/70 backdrop-blur-md flex flex-col justify-center items-center z-[9999]">
           <p className="text-white text-3xl font-bold mb-3">🚫 Daily Limit Reached</p>
-          <p className="text-neutral-300 text-sm">Come back tomorrow to swipe more</p>
+          <p className="text-neutral-300 text-sm">
+            Try again in {timeLeft}
+          </p>
           <button className="mt-6 px-6 py-3 bg-white text-black rounded-full font-semibold hover:scale-105 transition">
             Upgrade for Unlimited Swipes ⚡
           </button>

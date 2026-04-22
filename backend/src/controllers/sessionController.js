@@ -28,6 +28,23 @@ export const sessionInvite = async (req, res) => {
             ? match.user2Id
             : match.user1Id;
 
+        const existingSession = await SessionModel.findOne({
+            matchId: match,
+            members: {
+                $all: [
+                    { $elemMatch: { userId: toUser } },
+                    { $elemMatch: { userId: fromUser } },
+                ],
+            },
+        });
+
+        if (existingSession) {
+            return res.json({
+                message: "You already have a session. Continue or Delete?",
+                session: existingSession,
+            });
+        }
+
         if (String(toUser) == fromUser) {
             return res.status(403).json({
                 message: "ivite yourself",
@@ -153,6 +170,7 @@ export const inviteResponse = async (req, res) => {
                 assignmentMode: invite.assignmentMode,
                 matchId: invite.matchId,
                 owner: invite.fromUser,
+                status: "ACTIVE",
                 members: [
                     { userId: invite.fromUser, role: "OWNER" },
                     { userId: invite.toUser, role: "MEMBER" },
@@ -178,36 +196,58 @@ export const inviteResponse = async (req, res) => {
 }
 
 export const Getsession = async (req, res) => {
-  try {
-    const userId = req.user.id;
+    try {
+        const userId = req.user.id;
 
-    const session = await SessionModel.findOne({
-      "members.userId": userId,
-      status: "ACTIVE",
-    }).sort({ createdAt: -1 });
+        const session = await SessionModel.findOne({
+            "members.userId": userId,
+            status: "ACTIVE",
+        }).sort({ createdAt: -1 });
 
-    if (!session) {
-      return res.status(404).json({ message: "No active session" });
+        return res.status(200).json({
+            session: session || null,
+        });
+
+    } catch (err) {
+        return res.status(500).json({ message: "Server error" });
     }
-
-    return res.json({ session });
-
-  } catch (err) {
-    return res.status(500).json({ message: "Server error" });
-  }
 };
 
 export const getPendingInvites = async (req, res) => {
-  try {
-    const userId = req.user.id;
+    try {
+        const userId = req.user.id;
 
-    const invites = await InviteSession.find({
-      toUser: userId,
-      status: "PENDING",
-    }).sort({ createdAt: -1 });
+        const invites = await InviteSession.find({
+            toUser: userId,
+            status: "PENDING",
+        }).sort({ createdAt: -1 });
 
-    res.json({ invites });
-  } catch (err) {
-    res.status(500).json({ message: "Server error" });
-  }
+        res.json({ invites });
+    } catch (err) {
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+
+// GET /api/session/:sessionId
+export const getSessionbyparams = async (req, res) => {
+    try {
+        const { sessionId } = req.params;
+
+        if (!sessionId) {
+            return res.status(400).json({ message: 'Session ID is required' });
+        }
+        const session = await SessionModel.findById(sessionId)
+            .populate("members.userId", "name email");
+
+        if (!session) {
+            return res.status(404).json({ message: 'Session not found' });
+        }
+
+        return res.status(200).json(session);
+
+    } catch (error) {
+        console.error('Get Session Error:', error);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
 };

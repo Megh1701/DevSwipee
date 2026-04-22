@@ -2,21 +2,31 @@ import UserModel from "../models/UserModel.js";
 import SwipeModel from "../models/SwipeModel.js";
 import ProjectModel from "../models/ProjectModel.js";
 
-const DAILY_LIMIT = 10;
+const DAILY_LIMIT = 20;
 
 export const SwipeHandler = async (req, res) => {
   try {
     const swiperId = req.user.id;
     const { projectId, ownerId, direction } = req.body;
 
-    if (!projectId || !ownerId || direction === undefined) {
+    const swiperProject = await ProjectModel.findOne({ userId: swiperId });
+
+ if (!swiperProject) {
+      return res.status(400).json({
+        success: false,
+        message: "Create a project before swiping",
+      });
+    }
+
+    // ✅ Validate input
+    if (!projectId || !ownerId || typeof direction === "undefined") {
       return res.status(400).json({
         success: false,
         message: "Invalid swipe data",
       });
     }
 
-    // ⭐ prevent duplicate swipe
+    // ✅ Prevent duplicate swipe
     const alreadySwiped = await SwipeModel.findOne({ swiperId, projectId });
     if (alreadySwiped) {
       return res.status(400).json({
@@ -25,7 +35,8 @@ export const SwipeHandler = async (req, res) => {
       });
     }
 
-    // ⭐ fetch user (limiter source of truth)
+   
+    // ✅ Fetch user
     const user = await UserModel.findById(swiperId);
     if (!user) {
       return res.status(404).json({ success: false });
@@ -33,17 +44,30 @@ export const SwipeHandler = async (req, res) => {
 
     const now = new Date();
 
-
-    if (now > user.swipeResetAt) {
+    // ✅ Reset after 24h
+    if (!user.swipeResetAt || now > user.swipeResetAt) {
       user.dailySwipeCount = 0;
       user.swipeResetAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+      await user.save();
     }
 
-    if (!user.isPremium && user.dailySwipeCount >= DAILY_LIMIT) {
+    const updatedUser = await UserModel.findByIdAndUpdate(
+      swiperId,
+      { $inc: { dailySwipeCount: 1 } },
+      { new: true }
+    );
+    const remainingSwipes = Math.max(
+      0,
+      DAILY_LIMIT - updatedUser.dailySwipeCount
+    );
+
+
+    // ✅ Check limit BEFORE swipe
+    if (user.dailySwipeCount >= DAILY_LIMIT) {
       return res.status(403).json({
         success: false,
         message: "Daily swipe limit reached",
-        resetAt: user.swipeResetAt,
+        resetAt: updatedUser.swipeResetAt || user.swipeResetAt,
         remainingSwipes: 0,
       });
     }
@@ -51,7 +75,7 @@ export const SwipeHandler = async (req, res) => {
     const isRightSwipe = Number(direction) === 1;
     const swipeStatus = isRightSwipe ? "interested" : "ignore";
 
-    const swiperProject = await ProjectModel.findOne({ userId: swiperId });
+
 
     const swipe = await SwipeModel.create({
       swiperId,
@@ -62,25 +86,21 @@ export const SwipeHandler = async (req, res) => {
       status: swipeStatus,
     });
 
-    
-    user.dailySwipeCount += 1;
-    await user.save();
+    console.log("Swipe saved:", swipe);
 
-    res.json({
+    
+    return res.json({
       success: true,
       swipe,
-      remainingSwipes: user.isPremium
-        ? Infinity
-        : DAILY_LIMIT - user.dailySwipeCount,
+      remainingSwipes,
       resetAt: user.swipeResetAt,
     });
 
   } catch (err) {
     console.error("Swipe error:", err);
-    res.status(500).json({ success: false });
+    return res.status(500).json({ success: false });
   }
 };
-
 export const getMyRequests = async (req, res) => {
   try {
     const userId = req.user.id;

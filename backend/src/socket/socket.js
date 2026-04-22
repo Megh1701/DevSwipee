@@ -3,7 +3,7 @@ import ChatModel from "../models/ChatModel.js";
 
 let io; // 🔥 global singleto
 // INIT SOCK
-export  const initializeSocket = (server) => {
+export const initializeSocket = (server) => {
   io = new Server(server, {
     cors: {
       origin: "http://localhost:5173",
@@ -36,7 +36,10 @@ export  const initializeSocket = (server) => {
           content: data.content,
         });
 
-        io.to(data.matchId).emit("receiveMessage", message);
+        const populatedMessage = await ChatModel.findById(message._id)
+          .populate("senderId", "_id name");
+
+        io.to(data.matchId).emit("receiveMessage", populatedMessage);
       } catch (err) {
         console.error("Message error:", err);
       }

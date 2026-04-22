@@ -1,14 +1,16 @@
-import React, { use, useEffect, useRef, useState } from "react";
+import React, { act, use, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, Wrench } from "lucide-react";
 import axios from "axios";
 import socket from "../socket/socket";
+import { Link } from "react-router-dom";
 import { set } from "zod";
 
 export default function PremiumChatRoom({ light }) {
   const { matchId } = useParams();
-  const currentUserId = localStorage.getItem("userId");
+  
+const [currentUserId, setCurrentUserId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState("");
   const [hasScrolled, setHasScrolled] = useState(false);
@@ -25,14 +27,31 @@ export default function PremiumChatRoom({ light }) {
   const [session, setSession] = useState([])
   const [activeSession, setActiveSession] = useState(null);
 
+
   useEffect(() => {
-    socket.on("sessionCreated", (session) => {
-      setActiveSession(session);  // 🔥 THIS triggers UI update
-    });
+  const id = localStorage.getItem("userId");
+  setCurrentUserId(id);
+}, []);
 
-    return () => socket.off("sessionCreated");
-  }, []);
+console.log(currentUserId)
+  useEffect(() => {
+    const getSession = async () => {
+      try {
+        const res = await axios.get(
+          `http://localhost:3000/api/session/getsession`,
+          { withCredentials: true }
+        );
 
+        console.log("API session:", res.data.session);
+
+        setActiveSession(res.data.session);
+      } catch (err) {
+        console.log(err.response?.data);
+      }
+    };
+
+    getSession();
+  }, [matchId]);
 
   useEffect(() => {
     if (!currentUserId) return;
@@ -110,9 +129,15 @@ export default function PremiumChatRoom({ light }) {
         return [...prev, message];
       });
     };
+   const handleTyping = (senderId) => {
+  if (senderId !== currentUserId) setIsTyping(true);
+};
 
-    const handleTyping = () => setIsTyping(true);
-    const handleStopTyping = () => setIsTyping(false);
+const handleStopTyping = (senderId) => {
+  if (senderId !== currentUserId) setIsTyping(false);
+};
+
+
 
     socket.on("receiveMessage", handleMessage);
     socket.on("userTyping", handleTyping);
@@ -183,31 +208,17 @@ export default function PremiumChatRoom({ light }) {
   /* ---------------- SEND MESSAGE ---------------- */
 
   const handleSendMessage = () => {
-    if (!inputValue.trim() || !otherUserId) return;
+  if (!inputValue.trim() || !otherUserId) return;
 
-    const tempMessage = {
-      _id: Date.now(),
-      senderId: currentUserId,
-      content: inputValue,
-    };
+  socket.emit("sendMessage", {
+    matchId,
+    senderId: currentUserId,
+    receiverId: otherUserId,
+    content: inputValue,
+  });
 
-    setMessages((prev) => [...prev, tempMessage]);
-
-    socket.emit("sendMessage", {
-      matchId,
-      senderId: currentUserId,
-      receiverId: otherUserId,
-      content: inputValue,
-    });
-
-    socket.emit("stopTyping", {
-      matchId,
-      senderId: currentUserId,
-    });
-
-    setInputValue("");
-  };
-
+  setInputValue("");
+};
   const handleKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -381,9 +392,12 @@ export default function PremiumChatRoom({ light }) {
       >
         <AnimatePresence>
           {messages.map((msg) => {
-            const isOwn =
-              msg.senderId === currentUserId ||
-              msg.senderId?._id === currentUserId;
+            const senderId =
+              typeof msg.senderId === "object"
+                ? msg.senderId._id
+                : msg.senderId;
+
+            const isOwn = senderId === currentUserId;
 
             return (
               <motion.div
@@ -411,13 +425,17 @@ export default function PremiumChatRoom({ light }) {
         <div ref={messagesEndRef} />
       </div>
       {activeSession && (
-        <div
-          className="p-3 bg-green-100 border rounded cursor-pointer"
-          onClick={() => navigate(`/session/${activeSession._id}`)}
+
+        <Link
+
+          to={`/session/${activeSession._id}`}
+          className={`p-3 border-gray-50 rounded cursor-pointer block ${light ? "bg-green-200" : "bg-green-500"
+            }`}
         >
-          🚀 You both started: {activeSession.projectName}
-        </div>
+          🚀 You both started a Project: {activeSession.projectName}
+        </Link>
       )}
+
 
       {/* INPUT */}
       <div className="p-4 border-t flex gap-3">

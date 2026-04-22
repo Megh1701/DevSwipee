@@ -177,7 +177,10 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
             // }, 5000);
 
         } catch (error) {
-            console.error("Signup failed:", error);
+
+            console.log("FULL ERROR:", error.response?.data);
+            console.log("STATUS:", error.response?.status);
+            console.log("ERROR:", error);
             toast.error(error.response?.data?.message || "Signup failed. Please retry.");
         } finally {
             setIsLoading(false);
@@ -786,27 +789,27 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
                             </p>
                         </div>
 
-                       <div className="grid grid-cols-5 gap-4 mb-8">
-  {AVATARS.map((avatarUrl, idx) => {
-    const selected = formData.avatar === avatarUrl;
-    return (
-      <motion.div
-        key={idx}
-        className={`w-20 h-20 rounded-full overflow-hidden cursor-pointer border-2 flex items-center justify-center transition-transform
+                        <div className="grid grid-cols-5 gap-4 mb-8">
+                            {AVATARS.map((avatarUrl, idx) => {
+                                const selected = formData.avatar === avatarUrl;
+                                return (
+                                    <motion.div
+                                        key={idx}
+                                        className={`w-20 h-20 rounded-full overflow-hidden cursor-pointer border-2 flex items-center justify-center transition-transform
           ${selected ? "scale-110 shadow-lg border-white border-4" : "border-gray-700 hover:border-white/50"}`}
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={() => setFormData({ ...formData, avatar: avatarUrl })}
-      >
-        <img
-          src={avatarUrl}
-          alt={`Avatar ${idx + 1}`}
-          className="w-full h-full object-cover rounded-full"
-        />
-      </motion.div>
-    );
-  })}
-</div>
+                                        whileHover={{ scale: 1.1 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={() => setFormData({ ...formData, avatar: avatarUrl })}
+                                    >
+                                        <img
+                                            src={avatarUrl}
+                                            alt={`Avatar ${idx + 1}`}
+                                            className="w-full h-full object-cover rounded-full"
+                                        />
+                                    </motion.div>
+                                );
+                            })}
+                        </div>
                         <button
                             onClick={handleFinalSignup}
                             disabled={!formData.avatar}

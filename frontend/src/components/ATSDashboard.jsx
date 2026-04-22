@@ -45,7 +45,7 @@ const ATSDashboard = ({ light }) => {
       <div className="w-full h-full flex items-center justify-center bg-bg-dark">
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 border-4 border-neutral-600 border-t-blue-500 rounded-full animate-spin"></div>
-          <p className="text-text-dark text-sm">Calculating ATS Scores...</p>
+          <p className="text-text-dark text-sm">Calculating Profile Scores...</p>
         </div>
       </div>
     );
@@ -56,7 +56,7 @@ const ATSDashboard = ({ light }) => {
       <div className="w-full h-full flex items-center justify-center bg-bg-dark">
         <div className="text-center">
           <p className="text-text-dark text-lg mb-2">No projects found</p>
-          <p className="text-neutral-500 text-sm">Create a project to see your ATS score</p>
+          <p className="text-neutral-500 text-sm">Create a project to see your profile score</p>
         </div>
       </div>
     );
@@ -69,7 +69,7 @@ const ATSDashboard = ({ light }) => {
         <div className="mb-8 flex justify-between items-start" id="ats-header">
           <div>
             <h1 className="text-3xl font-bold text-text-dark mb-2">
-              ATS Score Dashboard
+              Profile Score
             </h1>
             <p className="text-neutral-400 text-sm">
               Track your project performance and quality metrics
