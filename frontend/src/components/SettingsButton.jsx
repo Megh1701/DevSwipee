@@ -8,7 +8,12 @@ import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 
 
+
+
 export default function SettingsButton({ light, avatar, setAvatar, avatarArray, setIsLoggedIn, className = "" }) {
+
+
+
   const [isRotated, setIsRotated] = useState(false)
   const [avatarPanelOpen, setAvatarPanelOpen] = useState(false)
   const [visible, setVisible] = useState(false);
@@ -25,61 +30,62 @@ export default function SettingsButton({ light, avatar, setAvatar, avatarArray, 
     "Blockchain / Web3",
     "Game Development",
   ];
+
   const handleLogout = async () => {
     try {
-      const res = await api.post("auth/logout", {}, { withCredentials: true });
-      console.log(res.data.message || "Logged out successfully");
+      await api.post("auth/logout", {}, { withCredentials: true });
+
       localStorage.removeItem("token");
-      setIsLoggedIn(false); // update app state
-      setVisible(false);    // close any dropdowns
-      window.location.reload();
-      navigate("/login");
-    } catch (error) {
-      console.error(error.response?.data?.message || "Logout failed");
+
+      setIsLoggedIn(false);
+      setProfile(null);
+
+      toast.success("Logged out");
+
+      navigate("/", { replace: true });
+    } catch (err) {
+      console.log(err);
     }
   };
-
-
 
   const handleChange = (name, value) => {
     setProfile(prev => ({ ...prev, [name]: value }))
   }
 
   const handleSave = async () => {
-  try {
-    const updatedData = {
-      name: profile.name,
-      email: profile.email,
-      city: profile.city,
-      interests: profile.interests,
-      avatar: profile.avatar,
-      age: profile.age,
-      gender: profile.gender,
-      distance: profile.distance
-    };
+    try {
+      const updatedData = {
+        name: profile.name,
+        email: profile.email,
+        city: profile.city,
+        interests: profile.interests,
+        avatar: profile.avatar,
+        age: profile.age,
+        gender: profile.gender
+      };
 
-    const res = await api.patch(
-      "/api/profiledata",
-      updatedData,
-      { withCredentials: true }
-    );
+      const res = await api.patch(
+        "/api/profiledata",
+        updatedData,
+        { withCredentials: true }
+      );
 
-    console.log("Profile updated successfully");
-    toast.success("Profile updated successfully")
-    const user = res.data.user || res.data;
+      console.log("Profile updated successfully");
+      toast.success("Profile updated successfully")
+      const user = res.data.user || res.data;
 
-    setProfile(prev => ({
-      ...prev,
-      ...user
-    }));
+      setProfile(prev => ({
+        ...prev,
+        ...user
+      }));
 
-  } catch (error) {
-    console.error(
-      "Update failed:",
-      error.response?.data?.message || error.message
-    );
-  }
-};
+    } catch (error) {
+      console.error(
+        "Update failed:",
+        error.response?.data?.message || error.message
+      );
+    }
+  };
   const handleInterestToggle = (interest) => {
     setProfile((prev) => {
       const alreadySelected = prev.interests.includes(interest);
@@ -93,7 +99,7 @@ export default function SettingsButton({ light, avatar, setAvatar, avatarArray, 
     });
   };
 
-  const handleClick = () => {
+  const handleClick = async () => {
     if (!visible) {
       const audio = new Audio("/sounds/mixkit-on-or-off-light-switch-tap-2585.wav")
       audio.volume = 0.3
@@ -101,6 +107,14 @@ export default function SettingsButton({ light, avatar, setAvatar, avatarArray, 
     }
     setIsRotated(prev => !prev)
     setVisible(prev => !prev)
+    // try {
+    //   const res = await api.get("/api/profiledata");
+
+    //   setProfile(res.data);   // 👈 THIS fixes blank UI
+    //   setAvatar(res.data.avatar);
+    // } catch (err) {
+    //   console.log("Failed to load profile", err);
+    // }
   }
   const handleAvatarClick = () => {
     setAvatarPanelOpen(prev => !prev);
@@ -279,7 +293,7 @@ export default function SettingsButton({ light, avatar, setAvatar, avatarArray, 
                         />
                       </div>
                       {/* Distance */}
-                      <div>
+                      {/* <div>
                         <label className="block text-gray-400 mb-1">
                           Max Distance: {profile.distance} km
                         </label>
@@ -308,14 +322,7 @@ export default function SettingsButton({ light, avatar, setAvatar, avatarArray, 
                             "--thumb-color": light ? "white" : "#ADD3E5",
                           }}
                         />
-                      </div>
-
-                    </div>
-
-                    {/* RIGHT SIDE */}
-                    <div className="w-full md:w-1/2 flex flex-col gap-10">
-
-                      {/* Gender */}
+                      </div> */}
                       <div>
                         <label className="text-gray-400 text-sm">Gender</label>
                         <div className="flex gap-3 mt-3">
@@ -334,10 +341,17 @@ export default function SettingsButton({ light, avatar, setAvatar, avatarArray, 
                           ))}
                         </div>
                       </div>
+                    </div>
+
+                    {/* RIGHT SIDE */}
+                    <div className="w-full md:w-1/2 flex flex-col gap-10">
+
+                      {/* Gender */}
+
 
                       <div >
                         <button
-                          onClick={{}}
+                          onClick={() => navigate("/project?mode=edit")}
                           className={`px-6 py-2 rounded-full border w-full font-medium transition cursor-pointer 
                             ${light ? "border-white" : "border-black"} 
                             }`}

@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 const TaskSchema = new mongoose.Schema(
   {
-   
+
     sessionId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Session",
@@ -31,6 +31,11 @@ const TaskSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       default: null
+    },
+    assignedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
     },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,

@@ -9,8 +9,8 @@ import { set } from "zod";
 
 export default function PremiumChatRoom({ light }) {
   const { matchId } = useParams();
-  
-const [currentUserId, setCurrentUserId] = useState(null);
+
+  const [currentUserId, setCurrentUserId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState("");
   const [hasScrolled, setHasScrolled] = useState(false);
@@ -29,20 +29,17 @@ const [currentUserId, setCurrentUserId] = useState(null);
 
 
   useEffect(() => {
-  const id = localStorage.getItem("userId");
-  setCurrentUserId(id);
-}, []);
+    const id = localStorage.getItem("userId");
+    setCurrentUserId(id);
+  }, []);
 
-console.log(currentUserId)
   useEffect(() => {
     const getSession = async () => {
       try {
         const res = await axios.get(
-          `http://localhost:3000/api/session/getsession`,
+          `http://localhost:3000/api/session/getsession?matchId=${matchId}`,
           { withCredentials: true }
         );
-
-        console.log("API session:", res.data.session);
 
         setActiveSession(res.data.session);
       } catch (err) {
@@ -61,7 +58,6 @@ console.log(currentUserId)
 
   useEffect(() => {
     socket.on("newInvite", (newInvite) => {
-      console.log(newInvite)
 
       setIsInvite((prev) => [...prev, newInvite])
 
@@ -129,13 +125,13 @@ console.log(currentUserId)
         return [...prev, message];
       });
     };
-   const handleTyping = (senderId) => {
-  if (senderId !== currentUserId) setIsTyping(true);
-};
+    const handleTyping = (senderId) => {
+      if (senderId !== currentUserId) setIsTyping(true);
+    };
 
-const handleStopTyping = (senderId) => {
-  if (senderId !== currentUserId) setIsTyping(false);
-};
+    const handleStopTyping = (senderId) => {
+      if (senderId !== currentUserId) setIsTyping(false);
+    };
 
 
 
@@ -208,17 +204,17 @@ const handleStopTyping = (senderId) => {
   /* ---------------- SEND MESSAGE ---------------- */
 
   const handleSendMessage = () => {
-  if (!inputValue.trim() || !otherUserId) return;
+    if (!inputValue.trim() || !otherUserId) return;
 
-  socket.emit("sendMessage", {
-    matchId,
-    senderId: currentUserId,
-    receiverId: otherUserId,
-    content: inputValue,
-  });
+    socket.emit("sendMessage", {
+      matchId,
+      senderId: currentUserId,
+      receiverId: otherUserId,
+      content: inputValue,
+    });
 
-  setInputValue("");
-};
+    setInputValue("");
+  };
   const handleKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -250,7 +246,6 @@ const handleStopTyping = (senderId) => {
         { withCredentials: true }
       );
 
-      console.log(res.data);
 
       setIsBuild(false);
       setProjectName("");
@@ -273,12 +268,13 @@ const handleStopTyping = (senderId) => {
         { withCredentials: true }
       );
 
-      console.log(res.data);
-
-      // optional: remove invite from UI
       setIsInvite((prev) =>
         prev.filter((i) => i._id !== inviteId)
       );
+      if (res.data.session) {
+        setActiveSession(res.data.session);
+      }
+
     } catch (err) {
       console.error(err);
     }
@@ -294,6 +290,7 @@ const handleStopTyping = (senderId) => {
       setIsInvite((prev) =>
         prev.filter((i) => i._id !== inviteId)
       );
+
     } catch (err) {
       console.error(err);
     }
@@ -315,7 +312,6 @@ const handleStopTyping = (senderId) => {
 
   const handleProjectname = (e) => {
     setProjectName(e.target.value)
-    console.log(projectName)
   }
   const InvitePopup = ({ invite }) => (
     <motion.div
@@ -417,39 +413,81 @@ const handleStopTyping = (senderId) => {
         </AnimatePresence>
 
         {isTyping && (
-          <div className="text-sm opacity-70">
-            typing...
-          </div>
+          <motion.span className={`inline-flex px-4 py-3 rounded-2xl border-emaral-200  gap-2 bg-white/10 border border-white/10 text-black shadow}`}>
+            {[0, 1, 2].map((dot) => (
+              <motion.div
+                key={dot}
+                className="h-1.5 w-1.5 rounded-full  bg-emerald-500 text-white"
+                animate={{
+                  y: [0, -6, 0],
+                  opacity: [0.3, 1, 0.3],
+                }}
+                transition={{
+                  duration: 0.6,
+                  repeat: Infinity,
+                  delay: dot * 0.2,
+                }}
+              />
+            ))}
+          </motion.span>
         )}
 
         <div ref={messagesEndRef} />
       </div>
       {activeSession && (
-
         <Link
-
           to={`/session/${activeSession._id}`}
-          className={`p-3 border-gray-50 rounded cursor-pointer block ${light ? "bg-green-200" : "bg-green-500"
+          className={`group flex items-center justify-between px-4 py-3 rounded-xl border transition-all
+      ${light
+              ? "bg-green-100 border-green-300 hover:bg-green-200 text-black"
+              : "bg-emerald-500/10 border-emerald-500/20 hover:bg-emerald-500/20 text-white"
             }`}
         >
-          🚀 You both started a Project: {activeSession.projectName}
+          {/* Left */}
+          <div className="flex items-center gap-3">
+            <span className="text-lg">🚀</span>
+
+            <div>
+              <p className="text-sm font-medium">
+                You both started:{" "}
+                <span className="font-semibold">
+                  {activeSession.projectName}
+                </span>
+              </p>
+
+              <p className="text-xs opacity-70">
+                Click to open Kanban board
+              </p>
+            </div>
+          </div>
+
+
+          <span className="text-sm opacity-60 group-hover:translate-x-1 transition">
+            →
+          </span>
         </Link>
       )}
-
 
       {/* INPUT */}
       <div className="p-4 border-t flex gap-3">
 
         {/* TRIGGER */}
         <button
-          onClick={() => setIsBuild(true)}
-          className={`flex items-center gap-2 cursor-pointer border rounded-md p-2
-    ${light ? "bg-white text-black border-gray-300 hover:bg-gray-50"
-              : "bg-zinc-900 text-white border-zinc-700 hover:bg-zinc-800"}
+          onClick={() => !activeSession && setIsBuild(true)}
+          disabled={!!activeSession}
+          className={`flex items-center gap-2 border rounded-md p-2 transition
+    ${activeSession
+              ? "opacity-50 cursor-not-allowed bg-gray-400 text-white"
+              : light
+                ? "bg-white text-black border-gray-300 hover:bg-gray-50 cursor-pointer"
+                : "bg-zinc-900 text-white border-zinc-700 hover:bg-zinc-800 cursor-pointer"
+            }
   `}
         >
           <Wrench />
-          <span>Build Together</span>
+          <span>
+            {activeSession ? "Session Actived" : "Build Together"}
+          </span>
         </button>
 
         {/* OVERLAY + PANEL */}

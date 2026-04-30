@@ -8,7 +8,22 @@ const userSchema = new mongoose.Schema(
     password: String,
     gender: String,
     avatar: String,
-    city: String,
+    city: {
+      type: String, // simple + readable
+      required: true
+    },
+
+    location: {
+      type: {
+        type: String,
+        enum: ["Point"],
+        default: "Point"
+      },
+      coordinates: {
+        type: [Number], // [lng, lat]
+        required: true
+      }
+    },
     verified: { type: Boolean, default: false },
     dailySwipeCount: {
       type: Number,
@@ -18,7 +33,22 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
-  
+    resetOtp: {
+      type: String,
+      default: null,
+    },
+    resetOtpExpiry: {
+      type: Date,
+      default: null,
+    },
+    otpAttempts: {
+      type: Number,
+      default: 0,
+    },
+    isOtpVerified: {
+      type: Boolean,
+      default: false,
+    },
     projects: [{ type: mongoose.Schema.Types.ObjectId, ref: "Project" }],
     interests: [
       { type: mongoose.Schema.Types.ObjectId, ref: "Interest" }
@@ -27,5 +57,6 @@ const userSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+userSchema.index({ location: "2dsphere" });
 
 export default mongoose.model("User", userSchema);

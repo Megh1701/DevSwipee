@@ -47,7 +47,7 @@ const Request = ({ light }) => {
   };
 
   // ---------- EMPTY MESSAGE ----------
-  const emptyMessage = () => "No swipes yet 😕";
+  const emptyMessage = () => "No Requestes yet 😕";
 
   const FilterItem = ({ icon, label, filterKey, onClick }) => (
     <button

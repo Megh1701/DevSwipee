@@ -70,7 +70,7 @@ export default function DevSwipeKanban() {
   }, [sessionId]);
 
   useEffect(() => {
-    const savedDark = localStorage.getItem('devswipe-dark') === 'true';
+    const savedDark = localStorage.getItem('devswipe-dark') === 'false';
     setIsDark(savedDark);
     applyTheme(savedDark);
   }, []);
@@ -232,10 +232,21 @@ export default function DevSwipeKanban() {
               {sessionData?.description && (
                 <p className="text-sm text-muted-foreground mt-1">{sessionData.description}</p>
               )}
+              <div className='gap-1'>
+                <span className="px-2 py-1 rounded-md bg-secondary text-xs font-medium">
+                  {sessionData?.assignmentMode === "ANYONE" && "Anyone can assign tasks"}
+                  {sessionData?.assignmentMode === "OWNER_ONLY" && "Only owner assigns"}
+                  {sessionData?.assignmentMode === "SELF_ONLY" && "Self assign only"}
+                </span>
+
+                <span className="px-2 py-1 rounded-md bg-blue-500/10 text-blue-500 text-xs font-medium">
+                  Live Collaboration
+                </span>
+              </div>
             </div>
             <button
               onClick={toggleTheme}
-              className="p-2 hover:bg-secondary rounded-lg transition-colors"
+              className="p-1 hover:bg-secondary rounded-lg transition-colors"
               aria-label="Toggle theme"
             >
               {isDark ? <Sun size={20} /> : <Moon size={20} />}
@@ -243,27 +254,55 @@ export default function DevSwipeKanban() {
           </div>
 
           {/* Stats Bar */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <User></User>
-            {members.length > 0 ? (
-              members.map((member, idx) => {
-                const name = member?.userId?.name || "U";
+          {/* Replace your current members section with this cleaner avatar stack */}
 
-                return (
-                  <div key={member._id || idx} className="flex items-center gap-1">
+          <div className="flex items-center gap-3 mt-3 flex-wrap">
+            <div className="flex -space-x-2">
+              {members.length > 0 ? (
+                members.map((member, idx) => {
+                  const user = member?.userId;
+                  const name = user?.name || "U";
+                  const avatar = user?.avatar; // assumes backend sends avatar URL
 
+                  return (
                     <div
-                      className={`w-6 h-6 rounded-full ${getAvatarColor(name)} flex items-center justify-center text-white text-xs`}
+                      key={member._id || idx}
+                      className="relative group"
+                      title={name}
                     >
-                      {name[0]}
+                      {avatar ? (
+                        <img
+                          src={avatar}
+                          alt={name}
+                          className="w-8 h-8 rounded-full object-cover border-2 border-background shadow-sm"
+                        />
+                      ) : (
+                        <div
+                          className={`w-8 h-8 rounded-full ${getAvatarColor(
+                            name
+                          )} flex items-center justify-center text-white text-xs font-semibold border-2 border-background shadow-sm`}
+                        >
+                          {name[0].toUpperCase()}
+                        </div>
+                      )}
+
+                      {/* Tooltip */}
+                      <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 text-[10px] rounded bg-black text-white opacity-0 group-hover:opacity-100 transition pointer-events-none whitespace-nowrap z-20">
+                        {name}
+                      </div>
                     </div>
-                    <span className="text-xs text-muted-foreground">{name}</span>
-                  </div>
-                );
-              })
-            ) : (
-              <span className="text-xs text-muted-foreground">No members</span>
-            )}
+                  );
+                })
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
+                  <User size={14} />
+                </div>
+              )}
+            </div>
+
+            <span className="text-xs text-muted-foreground">
+              {members.length} collaborator{members.length !== 1 ? "s" : ""}
+            </span>
           </div>
         </div>
         <div className="flex items-center gap-4  absolute right-10 top-20">

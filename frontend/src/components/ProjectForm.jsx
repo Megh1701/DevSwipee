@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -6,6 +6,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { ImageUp } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
+
+
 import {
     Select,
     SelectContent,
@@ -19,18 +22,64 @@ const ProjectForm = ({ onComplete }) => {
     const fileRef = useRef(null);
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState("");
+    const [searchParams] = useSearchParams();
 
+    const mode = searchParams.get("mode") || "create";
+    const projectRef = useRef(null);
     const [projectform, setProjectform] = useState({
         thumbnail: "",
         title: "",
         description: "",
         stack: "",
         ProjectStatus: "",
-        gitHubUrl: "",
+        githubUrl: "",
         liveDemoUrl: "",
     });
 
+    useEffect(() => {
+        if (mode !== "edit") return;
 
+        const fetchProject = async () => {
+            try {
+                const res = await fetch("http://localhost:3000/api/project", {
+                    credentials: "include",
+                });
+
+                const data = await res.json();
+
+                if (!res.ok || !data._id) {
+                    toast.error(data.message || "Invalid project");
+                    return;
+                }
+
+                projectRef.current = data._id;
+
+                console.log(projectRef.current)
+                console.log("PROJECT DATA:", data);
+
+                if (!data || typeof data !== "object") {
+                    toast.error("Invalid project response");
+                    return;
+                }
+                setProjectform({
+                    thumbnail: data.thumbnailUrl || "",
+                    title: data.title || "",
+                    description: data.description || "",
+                    stack: data.stack || "",
+                    ProjectStatus: data.ProjectStatus || "",
+                    githubUrl: data.githubUrl || "",
+                    liveDemoUrl: data.liveDemoUrl || "",
+                });
+
+
+            } catch (err) {
+                console.error(err);
+                toast.error("Failed to load project");
+            }
+        };
+
+        fetchProject();
+    }, [mode]);
     const handleImageUpload = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -87,8 +136,15 @@ const ProjectForm = ({ onComplete }) => {
                 formData.append(key, value);
             });
 
-            const res = await fetch("http://localhost:3000/api/project", {
-                method: "POST",
+            const url =
+                mode === "edit"
+                    ? `http://localhost:3000/api/project/${projectRef.current}`
+                    : "http://localhost:3000/api/project";
+
+            const method = mode === "edit" ? "PUT" : "POST";
+
+            const res = await fetch(url, {
+                method,
                 credentials: "include",
                 body: formData,
             });
@@ -102,11 +158,18 @@ const ProjectForm = ({ onComplete }) => {
                 return;
             }
 
-            // ✅ success
-            toast.success("Project created successfully 🚀");
+            toast.success(
+                mode === "edit"
+                    ? "Project updated successfully 🚀"
+                    : "Project created successfully 🚀"
+            );
 
             localStorage.setItem("projectDone", "true");
-            onComplete();
+
+            if (typeof onComplete === "function") {
+                onComplete();
+            }
+
             navigate("/home");
 
         } catch (err) {
@@ -236,9 +299,9 @@ const ProjectForm = ({ onComplete }) => {
                         <div className="space-y-2 w-1/2">
                             <Label className="text-white">Github repo :</Label>
                             <Input
-                                name="gitHubUrl"
+                                name="githubUrl"
                                 placeholder="Ex:https://github.com/your-project"
-                                value={projectform.gitHubUrl}
+                                value={projectform?.githubUrl || ""}
                                 onChange={handleChange}
                                 className="bg-neutral-900 border-neutral-700 text-white"
                             />
@@ -256,9 +319,10 @@ const ProjectForm = ({ onComplete }) => {
                     </div>
                     <button
                         onClick={handleSubmit}
+
                         className="w-full rounded-xl bg-neutral-200 text-black cursor-pointer hover:bg-neutral-200 hover:shadow-[0_0_30px_rgba(255,255,255,0.5)] transition-all duration-300 font-semibold h-12 text-base"
                     >
-                        Create Project
+                        {mode === "edit" ? "Update Project" : "Create Project"}
                     </button>
                 </div>
             </motion.div>

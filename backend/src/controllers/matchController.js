@@ -40,7 +40,7 @@ export const acceptSwipe = async (req, res) => {
     let match = null;
 
     if (oppositeSwipe) {
-      console.log("🔥 BOTH ACCEPTED — CREATING MATCH");
+      console.log(" BOTH ACCEPTED — CREATING MATCH");
 
       const [user1Id, user2Id] = normalizeUsers(
         swipe.swiperId,

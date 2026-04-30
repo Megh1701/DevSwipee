@@ -1,6 +1,5 @@
 import dotenv from "dotenv";
 dotenv.config();
-
 const startServer = async () => {
   const express = (await import("express")).default;
   const http = (await import("http")).default;
@@ -17,10 +16,9 @@ const startServer = async () => {
   const matchesRouter = (await import("./src/routes/matchesRoutes.js")).default;
   const chatRoutes = (await import("./src/routes/chatRoutes.js")).default;
   const atsRoutes = (await import("./src/routes/atsRoutes.js")).default;
+  const forgotRoutes = (await import("./src/routes/forgotRoutes.js")).default;
   const InviteSession = (await import("./src/routes/invitesessionRoutes.js")).default;
-  const socketModule = await import("./src/socket/socket.js");
-
-  const initializeSocket = socketModule.initializeSocket;
+  const { initializeSocket } = await import("./src/socket/socket.js");
 
   await connectDB();
 
@@ -35,9 +33,12 @@ const startServer = async () => {
   );
 
   app.use(express.json());
+
+  app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
 
   app.use("/auth", authRoutes);
+  app.use("/auth", forgotRoutes);
   app.use("/api/upload", uploadRoutes);
   app.use("/api", projectDetailRoutes);
   app.use("/api", profileDataRoutes);
@@ -46,13 +47,12 @@ const startServer = async () => {
   app.use("/api/matches", matchesRouter);
   app.use("/api/chat", chatRoutes);
   app.use("/api/ats", atsRoutes);
-
   // 🔥 Initialize Socket (separate file)
   initializeSocket(server);
 
 
   app.use("/api/session", InviteSession);
-  
+
   server.listen(3000, () =>
     console.log("Server running on port 3000")
   );

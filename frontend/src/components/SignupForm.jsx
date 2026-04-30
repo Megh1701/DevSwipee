@@ -6,10 +6,10 @@ import { Label } from "./ui/Label.jsx";
 import { Button } from "./ui/Button.jsx";
 import { Checkbox } from "@radix-ui/react-checkbox";
 import { useNavigate } from "react-router-dom";
-
+import { CITIES } from "@/data/cities.js";
+import { signupSchema } from "../../../Schemas/validation/authSchema.js"
 import { Eye, EyeOff, ChevronLeft, Github, Sparkles, Plus, Minus } from "lucide-react";
 import api from "@/lib/axios.js";
-import { number } from "zod";
 // Import all avatars dynamically from src/assets
 // Assuming SignupForm.jsx is in src/components/
 const avatarImports = import.meta.glob("../assets/*.png", { eager: true });
@@ -66,6 +66,10 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
         age: 25,
         gender: "",
         city: "",
+        location: {
+            type: "Point",
+            coordinates: [],
+        },
         interests: [],
         avatar: "",
         verified: false,
@@ -77,6 +81,32 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
     const [numericAge, setNumericAge] = useState(formData.age || 25);
     const [direction, setDirection] = useState(1);
     const [isVisible, setIsVisible] = useState(true)
+
+
+    //for suggestion (city autocomplete)
+    const [query, setQuery] = useState("");
+    const [suggestions, setSuggestions] = useState([]);
+    const [selectedLocation, setSelectedLocation] = useState(null);
+
+    const handleSearch = (value) => {
+        setQuery(value);
+
+        if (!value) {
+            setSuggestions([]);
+            return;
+        }
+
+        const filtered = CITIES
+            .filter((c) =>
+                `${c.name} ${c.state}`
+                    .toLowerCase()
+                    .includes(value.toLowerCase())
+            )
+            .slice(0, 5); // limit results
+
+        setSuggestions(filtered);
+    };
+
 
     useEffect(() => {
         console.log("Updating formData.age from numericAge:", numericAge);
@@ -102,6 +132,15 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
 
     const handleInitialSubmit = (e) => {
         e.preventDefault();
+
+        const isValid = validateStep({
+            name: true,
+            email: true,
+            password: true,
+        });
+
+        if (!isValid) return;
+
         toast.success("Let's get to know you better!")
         setDirection(1);
         setStep("gender");
@@ -109,6 +148,13 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
 
     const handleGenderSubmit = (e) => {
         e.preventDefault();
+
+        const isValid = validateStep({
+            gender: true,
+        });
+
+        if (!isValid) return;
+
         toast.success("Thanks for that! Age time—don’t worry, we won’t judge!");
         setDirection(1);
         setStep("age");
@@ -116,6 +162,12 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
 
     const handleAgeSubmit = (e) => {
         e.preventDefault();
+
+        const isValid = validateStep({
+            age: true,
+        });
+
+        if (!isValid) return;
 
         const ageValue = Number(numericAge);
         if (!ageValue || ageValue < 16) {
@@ -130,9 +182,29 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
         setStep("city");
     };
 
-
     const handleCitySubmit = (e) => {
         e.preventDefault();
+
+        const isValid = validateStep({
+            city: true,
+            location: true,
+        });
+
+        if (!isValid) return;
+
+        console.log("Selected Location:", selectedLocation); // ✅ debug
+
+        if (!selectedLocation) {
+            toast.error("Please select a city from suggestions");
+            return;
+        }
+
+        setFormData((prev) => ({
+            ...prev,
+            city: selectedLocation.city,
+            location: selectedLocation.location
+        }));
+
         toast.success("Just one more and you’re all set!");
         setDirection(1);
         setStep("interests");
@@ -168,6 +240,12 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
             // localStorage.setItem("token", data.token);
             // localStorage.setItem("userId", data.userId);
 
+            const isValid = validateStep({
+                interests: true,
+            });
+
+            if (!isValid) return;
+
             toast.success("Select avatar");
             setDirection(1);
             setStep("avatar");
@@ -190,9 +268,16 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
 
     const handleFinalSignup = async () => {
         try {
+            const result = signupSchema.safeParse(formData);
+
+            if (!result.success) {
+                toast.error(result.error.issues[0]?.message);
+                return;
+            }
+
             setIsLoading(true);
 
-            const res = await api.post("/auth/signup", formData);
+            const res = await api.post("/auth/signup", result.data);
 
             localStorage.setItem("token", res.data.token);
             localStorage.setItem("userId", res.data.userId);
@@ -233,6 +318,20 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
             scale: 0.9,
         }),
     };
+
+    const validateStep = (fields) => {
+    const partialSchema = signupSchema.pick(fields);
+
+    const result = partialSchema.safeParse(formData);
+
+    if (!result.success) {
+        const firstError = result.error.issues[0]?.message;
+        toast.error(firstError);
+        return false;
+    }
+
+    return true;
+}
 
     return (
         <div className="w-full max-w-md mx-auto relative select-none ">
@@ -667,17 +766,60 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
                                     <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: themeColor }}></span>
                                     City
                                 </Label>
-                                <Input
-                                    id="city"
-                                    type="text"
-                                    value={formData.city}
-                                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                                    placeholder="New York"
+                                <div className="relative">
+                                    <Input
+                                        id="city"
+                                        type="text"
+                                        // value={formData.city}
+                                        // onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                                        placeholder="Ex.Delhi"
+                                        value={query}
+                                        onChange={(e) => handleSearch(e.target.value)}
+                                        className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 h-14 text-center text-xl font-medium"
+                                        required
 
-                                    className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 h-14 text-center text-xl font-medium"
-                                    required
+                                    />
+                               
+                                {suggestions.length > 0 && (
+                                    <div className="absolute  mt-2 w-full z-50 rounded-xl 
+    bg-black/90 backdrop-blur-xl 
+    border border-white/10 
+    shadow-[0_10px_40px_rgba(0,0,0,0.6)] 
+    overflow-hidden">
 
-                                />
+                                        {suggestions.map((city, i) => (
+                                            <div
+                                                key={i}
+                                                onClick={() => {
+                                                    const locationObj = {
+                                                        city: `${city.name}, ${city.state}`,
+                                                        location: {
+                                                            type: "Point",
+                                                            coordinates: [city.lng, city.lat],
+                                                        },
+                                                    };
+
+                                                    setSelectedLocation(locationObj);
+                                                    setQuery(locationObj.city);
+                                                    setSuggestions([]);
+                                                }}
+                                                className="
+          px-4 py-3 
+          text-sm text-white/90 
+          cursor-pointer 
+          transition-all duration-150
+          hover:bg-white/5 
+          hover:text-white
+          border-b border-white/5 last:border-none
+        "
+                                            >
+                                                <span className="font-medium">{city.name}</span>
+                                                <span className="text-white/40">, {city.state}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                                 </div>
                             </motion.div>
 
                             <Button

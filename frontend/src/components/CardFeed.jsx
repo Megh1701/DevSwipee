@@ -4,6 +4,7 @@ import { useProfile } from "@/context/profileData";
 import api from "@/lib/axios";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
+import { useFeed } from "@/context/Feed";
 
 const VISIBLE_CARDS = 3;
 const PREFETCH_AT = 2;
@@ -40,18 +41,21 @@ const setBlocked = (resetAt) => {
   }
 };
 // ─────────────────────────────────────────────────────────────
-const CardFeed = ({ light, filters }) => {
+const CardFeed = ({ light }) => {
   const { profile } = useProfile();
+  const { filters } = useFeed();
   const navigate = useNavigate();
-
+  const [initializing, setInitializing] = useState(false);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const [readyToFetch, setReadyToFetch] = useState(false);
   const [swipeBlocked, setSwipeBlocked] = useState(() => isBlocked());
   const [timeLeft, setTimeLeft] = useState("");
   const page = useRef(0);
   const fetching = useRef(false);
   const hasMoreRef = useRef(true);
+
 
   useEffect(() => {
     if (!swipeBlocked) return;
@@ -82,51 +86,60 @@ const CardFeed = ({ light, filters }) => {
     return () => clearInterval(interval);
   }, [swipeBlocked]);
   // ── fetch ────────────────────────────────────────────────
-const fetchProjects = useCallback(async () => {
+
+const fetchProjects = useCallback(async (reset = false) => {
   if (fetching.current || !hasMoreRef.current) return;
 
   fetching.current = true;
   setLoading(true);
 
   try {
-    const { data } = await api.get("/api/feed", {
-      params: { page: page.current, ...filters },
+    const hasFilters =
+      filters.gender || filters.domain || filters.city || filters.distance !== 50;
+
+    const endpoint = hasFilters
+      ? "/api/filtered"
+      : "/api/feed";
+
+    const { data } = await api.get(endpoint, {
+      params: {
+        page: reset ? 0 : page.current,
+        ...filters,
+      },
       withCredentials: true,
     });
 
-    if (!data?.length) {
-      hasMoreRef.current = false;
-      setHasMore(false);
-      return;
+    if (reset) {
+      setProjects(data || []);
+      page.current = 1;
+    } else {
+      setProjects((prev) => [...prev, ...data]);
+      page.current += 1;
     }
 
-    setProjects((prev) => [...prev, ...data]);
-    page.current += 1;
+    hasMoreRef.current = !!data?.length;
 
-  } catch (err) {
-    if (err.response?.status === 401) {
-      navigate("/", { replace: true });
-    }
   } finally {
     fetching.current = false;
     setLoading(false);
   }
-}, [filters, navigate]);
-  // reset when filters change
-  useEffect(() => {
-    page.current = 0;
-    hasMoreRef.current = true;
-    fetching.current = false;
-    setProjects([]);
-    setHasMore(true);
-  }, [filters]);
+}, [filters]);
 
-  // initial load (and after filter reset)
-  useEffect(() => {
-    if (projects.length === 0 && hasMore) fetchProjects();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasMore]);
+ useEffect(() => {
+  page.current = 0;
+  hasMoreRef.current = true;
+  setProjects([]);
 
+  fetchProjects(true);
+}, [
+  filters.distance,
+  filters.gender,
+  filters.domain,
+  filters.city
+]);
+
+
+  console.log("FILTERS SENT:", filters);
   // ── swipe ────────────────────────────────────────────────
   const handleSwipe = useCallback(async (projectId, direction, ownerId) => {
 
@@ -135,8 +148,8 @@ const fetchProjects = useCallback(async () => {
     addSeenId(projectId);
     setProjects((prev) => {
       const next = prev.filter((p) => p._id !== projectId);
-      if (next.length <= PREFETCH_AT && !fetching.current && hasMoreRef.current) {
-        setTimeout(fetchProjects, 0);
+      if (next.length <= PREFETCH_AT && !fetching.current) {
+        fetchProjects();
       }
       return next;
     });
@@ -154,11 +167,11 @@ const fetchProjects = useCallback(async () => {
 
   // ── render ───────────────────────────────────────────────
   const visibleCards = projects.slice(0, VISIBLE_CARDS);
-
+  console.log(projects)
   return (
     <div className="relative w-full h-2/4 flex justify-center items-center">
 
-      {!projects.length && !loading && !swipeBlocked && (
+      {!projects.length && !loading && !initializing && !swipeBlocked && (
         <p className="text-center text-neutral-400 text-lg">
           You're all caught up! ✅
         </p>

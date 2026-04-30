@@ -107,9 +107,8 @@ const ReportModal = ({ light, onClose, onSubmit }) => {
                     </div>
                   </div>
                   <ChevronRight
-                    className={`w-3.5 h-3.5 shrink-0 transition-opacity ${
-                      selected === r.id ? "opacity-100 text-red-500" : "opacity-0 group-hover:opacity-40"
-                    }`}
+                    className={`w-3.5 h-3.5 shrink-0 transition-opacity ${selected === r.id ? "opacity-100 text-red-500" : "opacity-0 group-hover:opacity-40"
+                      }`}
                   />
                 </motion.button>
               ))}
@@ -119,9 +118,8 @@ const ReportModal = ({ light, onClose, onSubmit }) => {
             <button
               disabled={!selected}
               onClick={handleSubmit}
-              className={`w-full py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                selected ? btnActive : btnDisabled
-              }`}
+              className={`w-full py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${selected ? btnActive : btnDisabled
+                }`}
             >
               Submit Report
             </button>
@@ -235,7 +233,7 @@ const ProjectCard = ({ project, index, isTop, onSwipe, light, swipeBlocked, onRe
         src={project.thumbnailUrl || "/placeholder.svg"}
         alt={project.title}
         draggable={false}
-        className={`w-full object-cover pointer-events-none ${isExpanded ? "h-80" : "h-48"}`}
+        className={`w-full object-cover pointer-events-none ${isExpanded ? "h-82" : "h-48"}`}
       />
 
       <span className={`px-3 py-1 text-xs font-bold absolute top-5 right-5 rounded-full border ${statusBg} capitalize`}>
@@ -246,9 +244,30 @@ const ProjectCard = ({ project, index, isTop, onSwipe, light, swipeBlocked, onRe
       <div className="p-6 w-full flex flex-col">
         <div>
           <h3 className="text-2xl font-bold">{project.title}</h3>
-          <span className={`p-2 text-sm border rounded-full mt-2 inline-block ${stackBorder}`}>
-            {project.stack}
-          </span>
+
+        </div>
+        {/* USER INFO */}
+        <div className="flex items-center justify-between gap-3 mt-3">
+          <div className="flex items-center gap-3">
+            <img
+              src={project.userId?.avatar}
+              className="w-9 h-9 rounded-full"
+            />
+            <div>
+              <p className="text-sm font-medium">
+                {project.userId?.name}
+              </p>
+              <p className="text-xs opacity-60">
+                {project.userId?.city}
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <span className={`p-2 text-sm border rounded-full mt-2 inline-block ${stackBorder}`}>
+              {project.stack}
+            </span>
+          </div>
         </div>
 
         {/* DESCRIPTION */}

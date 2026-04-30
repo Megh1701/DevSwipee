@@ -182,6 +182,7 @@ export const inviteResponse = async (req, res) => {
             io.to(invite.fromUser.toString()).emit("inviteAccepted", session);
             return res.json({
                 message: "Session created",
+                success: true,
                 session,
             });
         }
@@ -198,18 +199,30 @@ export const inviteResponse = async (req, res) => {
 export const Getsession = async (req, res) => {
     try {
         const userId = req.user.id;
+        const { matchId } = req.query;
+
+        if (!matchId) {
+            return res.status(400).json({
+                message: "matchId required",
+            });
+        }
 
         const session = await SessionModel.findOne({
+            matchId,
             "members.userId": userId,
             status: "ACTIVE",
-        }).sort({ createdAt: -1 });
+        })
+            .populate("members.userId", "name email avatar")
+            .sort({ createdAt: -1 });
 
         return res.status(200).json({
             session: session || null,
         });
 
     } catch (err) {
-        return res.status(500).json({ message: "Server error" });
+        return res.status(500).json({
+            message: "Server error",
+        });
     }
 };
 

@@ -23,7 +23,7 @@ const Home = ({ light }) => {
           <Filter light={light} onApply={setFilters} />
 
           {/* CARD FEED */}
-          <CardFeed light={light} filters={filters} />
+          <CardFeed light={light} />
 
           {/* SWIPE BUTTONS */}
           <SwipeButton light={light} />

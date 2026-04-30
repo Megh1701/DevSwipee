@@ -1,51 +1,53 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-
+import { useFeed } from "@/context/Feed";
 const Filter = ({ light, onApply }) => {
   const [showFilter, setShowFilter] = useState(false);
-  const [filters, setFilters] = useState({
-    distance: 50,
-    gender: "",
-    domain: "",
-    city: ""
-  });
+  const { filters, setFilters } = useFeed()
+
+  const [draft, setDraft] = useState(filters);
+
+
+  const TOP_DOMAINS = ["Web Development",
+    "Mobile App Development",
+    "UI / UX Design",
+    "AI / Machine Learning",
+    "Data Science",
+    "Cyber Security",
+    "Cloud & DevOps",
+    "Blockchain / Web3",
+    "Game Development",]
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFilters((prev) => ({
+
+    setDraft((prev) => ({
       ...prev,
       [name]: value
     }));
   };
-
- 
-  const applyFilter = () => {
-  if (typeof onApply === "function") {
-    onApply(filters);
-  } else {
-    console.error("onApply is not passed to Filter");
+  const handleApply = () => {
+    setFilters(draft);  
+    setShowFilter(false);
   }
 
-  setShowFilter(false);
-};
-console.log("onApply:", onApply);
   // Theme-based styles - Pure Black & White
   const barBg = light ? "bg-white border-gray-200" : "bg-black border-gray-800";
   const barText = light ? "text-black" : "text-white";
   const barHover = light ? "hover:bg-gray-100" : "hover:bg-neutral-900";
-  const barShadow = light 
-    ? "shadow-sm hover:shadow-md" 
+  const barShadow = light
+    ? "shadow-sm hover:shadow-md"
     : "shadow-2xl hover:shadow-2xl";
 
-  const dropdownBg = light 
-    ? "bg-white border-gray-200 shadow-xl" 
+  const dropdownBg = light
+    ? "bg-white border-gray-200 shadow-xl"
     : "bg-black border-gray-800 shadow-2xl";
   const dropdownText = light ? "text-black" : "text-white";
   const labelText = light ? "text-gray-700" : "text-gray-300";
   const inputBg = light ? "bg-gray-100 border-gray-300" : "bg-neutral-900 border-gray-700";
   const inputPlaceholder = light ? "placeholder-gray-500" : "placeholder-gray-600";
-  const inputFocus = light 
-    ? "focus:border-black focus:ring-black/10" 
+  const inputFocus = light
+    ? "focus:border-black focus:ring-black/10"
     : "focus:border-white focus:ring-white/20";
 
   const containerVariants = {
@@ -84,7 +86,7 @@ console.log("onApply:", onApply);
   };
 
   const buttonVariants = {
-    hover: { 
+    hover: {
       x: 2,
       transition: { duration: 0.2 }
     },
@@ -100,9 +102,9 @@ console.log("onApply:", onApply);
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.4 }}
-        whileHover={{ 
-          boxShadow: light 
-            ? "0 12px 24px rgba(0, 0, 0, 0.08)" 
+        whileHover={{
+          boxShadow: light
+            ? "0 12px 24px rgba(0, 0, 0, 0.08)"
             : "0 20px 40px rgba(0, 0, 0, 0.4)"
         }}
       >
@@ -140,8 +142,6 @@ console.log("onApply:", onApply);
           whileTap="tap"
         >
           <motion.span
-            animate={{ y: [0, -4, 0] }}
-            transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
             className="inline-block text-lg"
           >
             ✨
@@ -174,7 +174,7 @@ console.log("onApply:", onApply);
             exit="exit"
             className={`absolute top-16 -left-20
               ${dropdownBg} ${dropdownText}
-              p-6 rounded-xl w-96 border
+              p-10 h-105 rounded-xl w-100 border
               backdrop-blur-xl z-[100]`}
           >
             {/* Header */}
@@ -191,31 +191,31 @@ console.log("onApply:", onApply);
             </motion.div>
 
             {/* DISTANCE */}
-          {/* DISTANCE */}
-<motion.div
-  custom={0}
-  variants={itemVariants}
-  initial="hidden"
-  animate="visible"
-  className="mb-5"
->
-  <label className={`text-xs font-bold uppercase tracking-wider ${labelText} block mb-2.5`}>
-    Max Distance: {filters.distance} km
-  </label>
+            {/* DISTANCE */}
+            {/* <motion.div
+              custom={0}
+              variants={itemVariants}
+              initial="hidden"
+              animate="visible"
+              className="mb-5"
+            >
+              <label className={`text-xs font-bold uppercase tracking-wider ${labelText} block mb-2.5`}>
+                Max Distance: {draft.distance} km
+              </label>
 
-  <input
-    type="range"
-    name="distance"
-    min={0}
-    max={100}
-    value={filters.distance}
-    onChange={(e) =>
-      setFilters((prev) => ({
-        ...prev,
-        distance: Number(e.target.value)
-      }))
-    }
-    className="w-full h-1.5 cursor-pointer appearance-none rounded-lg
+              <input
+                type="range"
+                name="distance"
+                min={0}
+                max={100}
+                value={draft.distance}
+                onChange={(e) =>
+                  setDraft((prev) => ({
+                    ...prev,
+                    distance: Number(e.target.value)
+                  }))
+                }
+                className="w-full h-1.5 cursor-pointer appearance-none rounded-lg
       [&::-webkit-slider-runnable-track]:h-1.5
       [&::-webkit-slider-runnable-track]:rounded-lg
       [&::-webkit-slider-runnable-track]:bg-gradient-to-r
@@ -229,12 +229,12 @@ console.log("onApply:", onApply);
       [&::-webkit-slider-thumb]:rounded-2xl
       [&::-webkit-slider-thumb]:bg-[var(--thumb-color)]
       [&::-webkit-slider-thumb]:mt-[-6px]"
-    style={{
-      "--range-progress": `${filters.distance}%`,
-      "--thumb-color": light ? "black" : "white"
-    }}
-  />
-</motion.div>
+                style={{
+                  "--range-progress": `${draft.distance}%`,
+                  "--thumb-color": light ? "black" : "white"
+                }}
+              />
+            </motion.div> */}
             {/* GENDER */}
             <motion.div custom={1} variants={itemVariants} initial="hidden" animate="visible" className="mb-5">
               <label className={`text-xs font-bold uppercase tracking-wider ${labelText} block mb-2.5`}>
@@ -242,7 +242,7 @@ console.log("onApply:", onApply);
               </label>
               <motion.select
                 name="gender"
-                value={filters.gender}
+                value={draft.gender}
                 onChange={handleChange}
                 className={`w-full px-4 py-2.5 rounded-lg ${inputBg} border
                   hover:border-opacity-60 ${inputFocus} outline-none 
@@ -256,25 +256,39 @@ console.log("onApply:", onApply);
             </motion.div>
 
             {/* DOMAIN */}
-            <motion.div custom={2} variants={itemVariants} initial="hidden" animate="visible" className="mb-5">
-              <label className={`text-xs font-bold uppercase tracking-wider ${labelText} block mb-2.5`}>
+            <motion.div
+              custom={2}
+              variants={itemVariants}
+              initial="hidden"
+              animate="visible"
+              className="mb-5"
+            >
+              <label
+                className={`text-xs font-bold uppercase tracking-wider ${labelText} block mb-2.5`}
+              >
                 Domain
               </label>
-              <motion.input
-                type="text"
-                name="domain"
-                value={filters.domain}
-                onChange={handleChange}
-                placeholder="e.g., Technology"
-                className={`w-full px-4 py-2.5 rounded-lg ${inputBg} border
-                  hover:border-opacity-60 ${inputFocus} outline-none 
-                  transition-all duration-200 text-sm font-medium ${inputPlaceholder}`}
-                whileFocus={{ scale: 1.02 }}
-              />
-            </motion.div>
 
+              <motion.select
+                name="domain"
+                value={draft.domain}
+                onChange={handleChange}
+                className={`w-full px-4 py-2.5 rounded-lg ${inputBg} border
+      hover:border-opacity-60 ${inputFocus} outline-none 
+      transition-all duration-200 text-sm font-medium ${dropdownText}`}
+                whileFocus={{ scale: 1.02 }}
+              >
+                <option value="">All Domains</option>
+
+                {TOP_DOMAINS.map((domain) => (
+                  <option key={domain} value={domain}>
+                    {domain}
+                  </option>
+                ))}
+              </motion.select>
+            </motion.div>
             {/* CITY */}
-            <motion.div custom={3} variants={itemVariants} initial="hidden" animate="visible" className="mb-6">
+            {/* <motion.div custom={3} variants={itemVariants} initial="hidden" animate="visible" className="mb-6">
               <label className={`text-xs font-bold uppercase tracking-wider ${labelText} block mb-2.5`}>
                 City
               </label>
@@ -289,7 +303,7 @@ console.log("onApply:", onApply);
                   transition-all duration-200 text-sm font-medium ${inputPlaceholder}`}
                 whileFocus={{ scale: 1.02 }}
               />
-            </motion.div>
+            </motion.div> */}
 
             {/* DIVIDER */}
             <motion.div
@@ -301,7 +315,8 @@ console.log("onApply:", onApply);
 
             {/* APPLY BUTTON */}
             <motion.button
-              onClick={applyFilter}
+              onClick={handleApply}
+
               custom={4}
               variants={itemVariants}
               initial="hidden"
@@ -314,7 +329,7 @@ console.log("onApply:", onApply);
             >
               <motion.div
                 className="flex items-center justify-center gap-2 "
-                
+
               >
                 <span>Apply Filters</span>
               </motion.div>

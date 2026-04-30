@@ -5,9 +5,10 @@ import { Eye, EyeOff } from "lucide-react";
 import { Input } from "./ui/Input.jsx";
 import { Label } from "./ui/Label.jsx";
 import { Button } from "./ui/Button.jsx";
+import { loginSchema } from "../../../Schemas/validation/authSchema.js";
 import api from "@/lib/axios.js";
 
-export default function LoginForm({ onSwitchToSignup,onForgotPassword,onLoginSuccess }) {
+export default function LoginForm({ onSwitchToSignup, onForgotPassword, onLoginSuccess }) {
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [showPassword, setShowPassword] = useState(false)
@@ -15,8 +16,21 @@ export default function LoginForm({ onSwitchToSignup,onForgotPassword,onLoginSuc
     const [emailFocused, setEmailFocused] = useState(false)
     const [passwordFocused, setPasswordFocused] = useState(false)
 
+
+
     const handleSubmit = async (e) => {
         e.preventDefault()
+
+        const result = loginSchema.safeParse({
+            email,
+            password,
+        });
+
+        if (!result.success) {
+            toast.error(result.error.issues[0].message);
+            return;
+        }
+
         setIsLoading(true)
         try {
             const response = await api.post(
@@ -27,11 +41,11 @@ export default function LoginForm({ onSwitchToSignup,onForgotPassword,onLoginSuc
             )
             console.log(response.data);
             localStorage.setItem("token", response.data.token);
-            localStorage.setItem("userId", response.data.user.id); 
+            localStorage.setItem("userId", response.data.user.id);
             toast.success("Welcome back 👋");
 
             if (onLoginSuccess)
-                 onLoginSuccess();
+                onLoginSuccess();
 
         }
         catch (error) {
@@ -90,7 +104,7 @@ export default function LoginForm({ onSwitchToSignup,onForgotPassword,onLoginSuc
                             id="email"
                             type="email"
                             name="email"
-  autoComplete="email"
+                            autoComplete="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             onFocus={() => setEmailFocused(true)}
@@ -133,20 +147,20 @@ export default function LoginForm({ onSwitchToSignup,onForgotPassword,onLoginSuc
                         </button>
                     </motion.div>
                 </motion.div>
-<motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.3, duration: 0.4 }}
-                className="text-right relative z-10 m-3"
-            >
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.3, duration: 0.4 }}
+                    className="text-right relative z-10 m-3"
+                >
                     <button
                         onClick={onForgotPassword}
                         className="text-xs text-blue-400 cursor-pointer hover:text-blue-300 font-light transition-colors duration-200 underline-offset-4 hover:underline"
                     >
                         Forgot Password ?
                     </button>
-            
-            </motion.div>
+
+                </motion.div>
                 {/* Submit Button */}
                 <motion.div
                     initial={{ opacity: 0, y: 10 }}
@@ -191,7 +205,7 @@ export default function LoginForm({ onSwitchToSignup,onForgotPassword,onLoginSuc
                     </button>
                 </p>
             </motion.div>
-             
+
         </motion.div>
     );
 

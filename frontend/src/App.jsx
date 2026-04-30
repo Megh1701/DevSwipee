@@ -11,7 +11,9 @@ import Request from "./components/Request";
 import ProjectForm from "./components/ProjectForm";
 import ATSDashboard from "./components/ATSDashboard";
 import Session from "./components/Session"
-import api from "./lib/axios";
+import api from "./lib/axios.js";
+import { useProfile } from "./context/ProfileData";
+import { verifyAuth } from "./lib/authverify.js";
 
 
 const avatarImports = import.meta.glob("./assets/*.{png,jpg,jpeg}", {
@@ -20,32 +22,46 @@ const avatarImports = import.meta.glob("./assets/*.{png,jpg,jpeg}", {
 });
 const avatarArray = Object.values(avatarImports);
 
+
+
 export default function App() {
   const navigate = useNavigate();
 
+   
   // 🔐 AUTH STATE
+  const { profile, setProfile } = useProfile();
   const [isLoggedIn, setIsLoggedIn] = useState(null);
   const [needsProjectForm, setNeedsProjectForm] = useState(false);
   const [light, setLight] = useState(false);
   const [avatar, setAvatar] = useState("");
 
-  // check auth on app load
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const resp = await api.get("api/profiledata"); // requires auth
-        setAvatar(resp.data.avatar)
-        console.log(avatar)
-        setIsLoggedIn(true);
-      } catch (err) {
-        setIsLoggedIn(false);
-        setNeedsProjectForm(false);
-        navigate("/", { replace: true });
-      }
-    };
-    checkAuth();
-  }, []);
+useEffect(() => {
+  const checkAuth = async () => {
+    try {
+      const isValid = await verifyAuth();
 
+      if (!isValid) {
+        setIsLoggedIn(false);
+        navigate("/", { replace: true });
+        return;
+      }
+
+      const resp = await api.get("api/profiledata");
+
+      setAvatar(resp.data.avatar || "");
+      setProfile(resp.data); 
+      console.log(profile)
+      setIsLoggedIn(true);
+    } catch (err) {
+      setIsLoggedIn(false);
+      
+      setAvatar("");
+      navigate("/", { replace: true });
+    }
+  };
+
+  checkAuth();
+}, []);
 
   const toggleTheme = () => {
     const audio = new Audio("/sounds/mixkit-on-or-off-light-switch-tap-2585.wav");
@@ -66,7 +82,13 @@ export default function App() {
           element={
             !isLoggedIn ? (
               <Auth
-                onLoginSuccess={() => setIsLoggedIn(true)}
+                onLoginSuccess={async () => {
+                  setIsLoggedIn(true);
+
+                  const resp = await api.get("api/profiledata");
+                  
+                  setAvatar(resp.data.avatar);
+                }}
                 onSignupSuccess={() => setNeedsProjectForm(true)}
               />
             ) : (
@@ -76,11 +98,12 @@ export default function App() {
         />
 
         {/* --------------- PROJECT SETUP ---------------- */}
-        <Route
+        {/* <Route
           path="/project"
           element={
             needsProjectForm ? (
               <ProjectForm
+                mode="create"
                 onComplete={() => {
                   setNeedsProjectForm(false);
                   setIsLoggedIn(true);
@@ -90,7 +113,8 @@ export default function App() {
               <Navigate to="/" replace />
             )
           }
-        />
+        /> */}
+        <Route path="/project" element={<ProjectForm />} />
         {/*------session------*/
           <Route path="/session/:sessionId" element={<Session />} />
         }

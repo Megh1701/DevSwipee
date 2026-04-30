@@ -16,6 +16,7 @@ export const signup = async (req, res) => {
       gender,
       avatar,
       city,
+      location,
       interests = [],
     } = req.body;
 
@@ -26,6 +27,9 @@ export const signup = async (req, res) => {
 
     const hashed = await hashPassword(password);
 
+    if (!location || !location.coordinates?.length) {
+      return res.status(400).json({ error: "Location is required" });
+    }
     const user = await User.create({
       name,
       age,
@@ -34,10 +38,11 @@ export const signup = async (req, res) => {
       gender,
       avatar,
       city,
+      location,
       verified: false,
     });
 
-  
+
     const interestDocs = [];
     for (const interestName of interests) {
       const interest = await Interest.findOneAndUpdate(
@@ -88,61 +93,61 @@ export const signup = async (req, res) => {
 
 
 export const login = async (req, res) => {
-    try {
+  try {
 
 
-        const { email, password } = req.body;
+    const { email, password } = req.body;
 
-        const user = await User.findOne({ email });
-        if (!user) {
-            return res.status(400).json({ error: "Invalid credentials" });
-        }
-
-        const isMatch = await comparePassword(password, user.password);
-        if (!isMatch) {
-            return res.status(400).json({ error: "Invalid credentials" });
-        }
-
-        const token = generatetoken(user._id);
-
-        res
-            .cookie("access_token", token, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === "production",
-                sameSite: "strict",
-                maxAge: 7 * 24 * 60 * 60 * 1000
-            })
-            .status(200)
-            .json({
-                message: "Login successful",
-                user: {
-                    id: user._id,
-                    name: user.name,
-                    email: user.email,
-                    age: user.age,
-                    gender: user.gender,
-                    avatar: user.avatar,
-                    city: user.city,
-                    verified: user.verified
-                }
-            });
-
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Internal server login error" });
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ error: "Invalid credentials" });
     }
+
+    const isMatch = await comparePassword(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ error: "Invalid credentials" });
+    }
+
+    const token = generatetoken(user._id);
+
+    res
+      .cookie("access_token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000
+      })
+      .status(200)
+      .json({
+        message: "Login successful",
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          age: user.age,
+          gender: user.gender,
+          avatar: user.avatar,
+          city: user.city,
+          verified: user.verified
+        }
+      });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Internal server login error" });
+  }
 };
 
 
 export const logout = async (req, res) => {
-    res
-        .clearCookie("access_token", {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "strict",
-        })
-        .status(200)
-        .json({
-            message: "Logout successful"
-        });
+  res
+    .clearCookie("access_token", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+    })
+    .status(200)
+    .json({
+      message: "Logout successful"
+    });
 };
