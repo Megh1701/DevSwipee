@@ -1,8 +1,7 @@
 import { Server } from "socket.io";
 import ChatModel from "../models/ChatModel.js";
 
-let io; // 🔥 global singleto
-// INIT SOCK
+let io;
 export const initializeSocket = (server) => {
   io = new Server(server, {
     cors: {

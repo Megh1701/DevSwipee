@@ -251,7 +251,7 @@ export const getSessionbyparams = async (req, res) => {
             return res.status(400).json({ message: 'Session ID is required' });
         }
         const session = await SessionModel.findById(sessionId)
-            .populate("members.userId", "name email");
+            .populate("members.userId", "name email avatar");
 
         if (!session) {
             return res.status(404).json({ message: 'Session not found' });

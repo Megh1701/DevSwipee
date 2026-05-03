@@ -5,9 +5,9 @@ import { Sun, Moon, Plus, Calendar, Users, Play, X, ChevronLeft, ChevronRight, U
 import api from '@/lib/axios';
 
 const priorityConfig = {
-  low: { label: 'Low', color: 'bg-emerald-500', textColor: 'text-emerald-700 dark:text-emerald-400' },
-  medium: { label: 'Medium', color: 'bg-amber-500', textColor: 'text-amber-700 dark:text-amber-400' },
-  high: { label: 'High', color: 'bg-red-500', textColor: 'text-red-700 dark:text-red-400' },
+  LOW: { label: 'LOW', color: 'bg-emerald-500', textColor: 'text-emerald-700 dark:text-emerald-400' },
+  MEDIUM: { label: 'MEDIUM', color: 'bg-amber-500', textColor: 'text-amber-700 dark:text-amber-400' },
+  HIGH: { label: 'HIGH', color: 'bg-red-500', textColor: 'text-red-700 dark:text-red-400' },
 };
 
 const getDateStatus = (date) => {
@@ -27,15 +27,7 @@ const getDateStatus = (date) => {
   return { label: `${diffDays}d left`, className: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300' };
 };
 
-const getAvatarColor = (name) => {
-  const colors = ['bg-blue-500', 'bg-purple-500', 'bg-pink-500', 'bg-emerald-500', 'bg-orange-500'];
 
-  const str = typeof name === 'string' ? name : String(name || '');
-
-  if (str.length === 0) return colors[0];
-
-  return colors[str.charCodeAt(0) % colors.length];
-};
 
 export default function DevSwipeKanban() {
   const [tasks, setTasks] = useState([]);
@@ -48,18 +40,42 @@ export default function DevSwipeKanban() {
   const datePickerRef = useRef(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [newTaskPriority, setNewTaskPriority] = useState('medium');
+  const [selectedAssignee, setSelectedAssignee] = useState("");
+  const [sessionInfo, setSessionInfo] = useState(null);
+  const [isOwner, setIsOwner] = useState(null)
+  const [isMember, setIsMember] = useState(null)
   const { sessionId } = useParams();
 
   console.log(sessionId);
+
+  useEffect(() => {
+    const getSessionInfo = async () => {
+      const res = await api.get(`/api/session/${sessionId}`);
+      console.log(res.data)
+      setSessionInfo(res.data);
+
+      const owner = res.data.members.find(
+        (member) => member.role === "OWNER"
+      );
+
+      const otherMembers = res.data.members.filter(
+        (member) => member.role !== "OWNER"
+      );
+
+      setIsOwner(owner)
+      setIsMember(otherMembers[0])
+    }
+    getSessionInfo()
+  }, [sessionId])
 
   useEffect(() => {
     if (!sessionId) return;
 
     const getSession = async () => {
       try {
-        const res = await api.get(`api/session/${sessionId}`);
-        console.log("FULL RES:", res);
+        const res = await api.get(`api/tasks/${sessionId}`);
         console.log("DATA:", res.data);
+        setTasks(res.data.tasks)
         setSessionData(res.data || null);
       } catch (err) {
         console.log(err.response?.data);
@@ -106,8 +122,8 @@ export default function DevSwipeKanban() {
 
     setTasks(
       tasks.map((task) =>
-        task.id === draggableId
-          ? { ...task, column: destination.droppableId }
+        task._id === draggableId
+          ? { ...task, status: destination.droppableId }
           : task
       )
     );
@@ -121,20 +137,30 @@ export default function DevSwipeKanban() {
     setShowDatePicker(false);
   };
 
-  const addTask = () => {
+  const addTask = async () => {
     if (!newTaskTitle.trim()) return;
 
-    const newTask = {
-      id: Date.now().toString(),
-      title: newTaskTitle,
-      description: newTaskDescription || undefined,
-      priority: newTaskPriority,
-      dueDate: newTaskDueDate || undefined,
-      column: 'todo',
-    };
+    try {
+      const res = await api.post(`/api/${sessionId}/create`, {
+        title: newTaskTitle,
+        description: newTaskDescription,
+        priority: newTaskPriority.toUpperCase(),
+        assignedTo: selectedAssignee,
+        dueDate: newTaskDueDate,
+      });
+      setTasks((prev) => [
+        ...prev,
+        {
+          ...res.data.task,
+          status: res.data.task.status || "TODO",
+        },
+      ]);
 
-    setTasks((prev) => [...prev, newTask]);
-    resetTaskForm();
+      resetTaskForm();
+
+    } catch (err) {
+      console.log(err.response?.data);
+    }
   };
 
   const handleSetToday = () => setNewTaskDueDate(new Date());
@@ -173,51 +199,98 @@ export default function DevSwipeKanban() {
     );
   };
 
-  const completedCount = tasks.filter((t) => t.column === 'done').length;
+  const completedCount = tasks.filter((t) => t.status === 'done').length;
   const totalCount = tasks.length;
   const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
-  const todoTasks = tasks.filter((t) => t.column === 'todo');
-  const inProgressTasks = tasks.filter((t) => t.column === 'inprogress');
-  const doneTasks = tasks.filter((t) => t.column === 'done');
+  const todoTasks = tasks.filter((t) => t.status === 'TODO');
+  const inProgressTasks = tasks.filter((t) => t.status === 'INPROGRESS');
+  const doneTasks = tasks.filter((t) => t.status === 'DONE');
 
-  // Adjust this path if API returns { session: { members: [...] } } instead
-  const members = sessionData?.members || [];
+  const members = sessionInfo?.members || [];
 
   const TaskCard = ({ task, provided, snapshot }) => (
     <div
       ref={provided.innerRef}
       {...provided.draggableProps}
       {...provided.dragHandleProps}
-      className={`bg-background border border-border rounded-lg p-4 transition-all ${snapshot.isDragging ? 'shadow-lg scale-105 rotate-1' : 'shadow-sm hover:shadow-md'
+      className={`bg-background border border-border rounded-xl p-4 transition-all duration-200
+      ${snapshot.isDragging
+          ? 'shadow-xl scale-[1.02] rotate-1 border-blue-500/40'
+          : 'shadow-sm hover:shadow-md hover:border-blue-400/30'
         }`}
     >
-      <div className="flex items-start justify-between gap-2">
-        <h3 className="font-medium text-sm flex-1">{task.title}</h3>
-        <div className={`w-2 h-2 rounded-full ${priorityConfig[task.priority].color} mt-1.5 flex-shrink-0`} />
-      </div>
-      {task.description && (
-        <p className="text-xs text-muted-foreground mt-2">{task.description}</p>
-      )}
-      <div className="flex items-center justify-between mt-3 gap-2">
-        <span className={`text-xs font-medium ${priorityConfig[task.priority].textColor}`}>
-          {priorityConfig[task.priority].label}
-        </span>
-        {task.dueDate && (
-          <div className={`text-xs px-2 py-1 rounded flex items-center gap-1 ${getDateStatus(task.dueDate).className}`}>
-            <Calendar size={12} />
-            {getDateStatus(task.dueDate).label}
-          </div>
-        )}
-      </div>
-      {task.assignee && (
-        <div className="mt-3 flex items-center gap-2">
-          <div className={`w-6 h-6 rounded-full ${getAvatarColor(task.assignee)} flex items-center justify-center text-white text-xs font-semibold`}>
-            {task.assignee[0]}
-          </div>
-          <span className="text-xs text-muted-foreground">{task.assignee}</span>
+      {/* Top Section */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold text-sm leading-5 truncate">
+            {task.title}
+          </h3>
+          {task.description && (
+            <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
+              {task.description}
+            </p>
+          )}
         </div>
-      )}
+        <div
+          className={`w-2.5 h-2.5 rounded-full mt-1 flex-shrink-0 ${priorityConfig[task?.priority]?.color ?? 'bg-gray-400'
+            }`}
+        />
+      </div>
+
+      {/* Bottom Section */}
+      <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/60">
+
+        {/* Left Side - Assignee */}
+        <div className="flex items-center gap-2 min-w-0">
+          {task.assignedTo ? (
+            <>
+
+              {task.assignedTo?.avatar ? (
+                <img
+                  src={task.assignedTo.avatar}
+                  alt={task.assignedTo.name}
+                  className="w-8 h-8 rounded-full object-cover border bg-blue-200 border-background shadow-sm"
+                />
+              ) : (
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold border-2 border-background shadow-sm
+      ${isDark ? 'bg-white text-black' : 'bg-black text-white'}`}
+                >
+                  {task.assignedTo?.name?.[0]?.toUpperCase() || "U"}
+                </div>
+              )}
+              <span className="text-xs text-muted-foreground truncate max-w-[80px]">
+                {task.assignedTo.name || task.assignedTo}
+              </span>
+            </>
+          ) : (
+            <span className="text-[11px] text-muted-foreground">
+              Unassigned
+            </span>
+          )}
+        </div>
+
+        {/* Right Side - Priority + Due */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span
+            className={`text-[10px] font-semibold px-2 py-1 rounded-md bg-secondary
+            ${priorityConfig[task?.priority]?.textColor ?? 'text-gray-500'}`}
+          >
+            {priorityConfig[task?.priority]?.label ?? 'UNKNOWN'}
+          </span>
+
+          {task.dueDate && (
+            <div
+              className={`text-[10px] px-2 py-1 rounded-md flex items-center gap-1 font-medium
+              ${getDateStatus(task.dueDate).className}`}
+            >
+              <Calendar size={10} />
+              {getDateStatus(task.dueDate).label}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 
@@ -228,15 +301,15 @@ export default function DevSwipeKanban() {
         <div className="max-w-7xl mx-auto px-6 py-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-3xl font-bold">{sessionData?.projectName || 'DevSwipe'}</h1>
-              {sessionData?.description && (
-                <p className="text-sm text-muted-foreground mt-1">{sessionData.description}</p>
+              <h1 className="text-3xl font-bold">{sessionInfo?.projectName || 'DevSwipe'}</h1>
+              {sessionInfo?.description && (
+                <p className="text-sm text-muted-foreground mt-1">{sessionInfo.description}</p>
               )}
               <div className='gap-1'>
                 <span className="px-2 py-1 rounded-md bg-secondary text-xs font-medium">
-                  {sessionData?.assignmentMode === "ANYONE" && "Anyone can assign tasks"}
-                  {sessionData?.assignmentMode === "OWNER_ONLY" && "Only owner assigns"}
-                  {sessionData?.assignmentMode === "SELF_ONLY" && "Self assign only"}
+                  {sessionInfo?.assignmentMode === "ANYONE" && "Anyone can assign tasks"}
+                  {sessionInfo?.assignmentMode === "OWNER_ONLY" && "Only owner assigns"}
+                  {sessionInfo?.assignmentMode === "SELF_ONLY" && "Self assign only"}
                 </span>
 
                 <span className="px-2 py-1 rounded-md bg-blue-500/10 text-blue-500 text-xs font-medium">
@@ -274,19 +347,16 @@ export default function DevSwipeKanban() {
                         <img
                           src={avatar}
                           alt={name}
-                          className="w-8 h-8 rounded-full object-cover border-2 border-background shadow-sm"
+                          className="w-8 h-8 bg-blue-200 rounded-full object-cover border border-background shadow-sm"
                         />
                       ) : (
                         <div
-                          className={`w-8 h-8 rounded-full ${getAvatarColor(
-                            name
-                          )} flex items-center justify-center text-white text-xs font-semibold border-2 border-background shadow-sm`}
+                          className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold border-2 border-background shadow-sm
+      bg-black text-white `}
                         >
                           {name[0].toUpperCase()}
                         </div>
                       )}
-
-                      {/* Tooltip */}
                       <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 px-2 py-1 text-[10px] rounded bg-black text-white opacity-0 group-hover:opacity-100 transition pointer-events-none whitespace-nowrap z-20">
                         {name}
                       </div>
@@ -373,6 +443,8 @@ export default function DevSwipeKanban() {
                           : 'Add Due Date'
                         }
                       </button>
+
+
                       <div className="flex gap-2 m-4">
                         <span>Priority:</span>
                         {['low', 'medium', 'high'].map((p) => (
@@ -461,8 +533,6 @@ export default function DevSwipeKanban() {
                               ))}
                             </div>
                           </div>
-
-                          {/* Actions */}
                           <div className="flex gap-2">
                             <button
                               onClick={addTask}
@@ -482,7 +552,24 @@ export default function DevSwipeKanban() {
                         </div>
                       )}
                     </div>
+                    <select
+                      value={selectedAssignee}
+                      onChange={(e) => setSelectedAssignee(e.target.value)}
+                      className="w-full px-3 py-2 bg-background border border-border rounded-lg"
+                    >
+                      <option value="">Assign Task To</option>
+                      {isOwner && (
+                        <option value={isOwner.userId._id}>
+                          {isOwner.userId.name}
+                        </option>
+                      )}
+                      {isMember && (
+                        <option value={isMember.userId._id}>
+                          {isMember.userId.name}
+                        </option>
+                      )}
 
+                    </select>
                     {!showDatePicker && (
                       <div className="flex gap-2">
                         <button
@@ -508,11 +595,14 @@ export default function DevSwipeKanban() {
                       <p className="text-xs text-muted-foreground text-center py-4">No tasks</p>
                     ) : (
                       todoTasks.map((task, index) => (
-                        <Draggable key={task.id} draggableId={task.id} index={index}>
+
+                        <Draggable key={task._id} draggableId={task._id} index={index}>
                           {(provided, snapshot) => (
+
                             <TaskCard task={task} provided={provided} snapshot={snapshot} />
                           )}
                         </Draggable>
+
                       ))
                     )}
                   </div>
@@ -542,7 +632,7 @@ export default function DevSwipeKanban() {
                       <p className="text-xs text-muted-foreground text-center py-4">No tasks</p>
                     ) : (
                       inProgressTasks.map((task, index) => (
-                        <Draggable key={task.id} draggableId={task.id} index={index}>
+                        <Draggable key={task._id} draggableId={task._id} index={index}>
                           {(provided, snapshot) => (
                             <TaskCard task={task} provided={provided} snapshot={snapshot} />
                           )}
@@ -576,7 +666,7 @@ export default function DevSwipeKanban() {
                       <p className="text-xs text-muted-foreground text-center py-4">No tasks</p>
                     ) : (
                       doneTasks.map((task, index) => (
-                        <Draggable key={task.id} draggableId={task.id} index={index}>
+                        <Draggable key={task._id} draggableId={task._id} index={index}>
                           {(provided, snapshot) => (
                             <TaskCard task={task} provided={provided} snapshot={snapshot} />
                           )}
