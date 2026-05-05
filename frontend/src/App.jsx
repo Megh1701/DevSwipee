@@ -36,9 +36,11 @@ export default function App() {
   const [avatar, setAvatar] = useState("");
 
 useEffect(() => {
-  const checkAuth = async () => {
+  checkAuth();
+}, []);
+const checkAuth = async () => {
     try {
-      const isValid = await verifyAuth();
+      const isValid = (localStorage.getItem('userId'));
 
       if (!isValid) {
         setIsLoggedIn(false);
@@ -59,10 +61,6 @@ useEffect(() => {
       navigate("/", { replace: true });
     }
   };
-
-  checkAuth();
-}, []);
-
   const toggleTheme = () => {
     const audio = new Audio("/sounds/mixkit-on-or-off-light-switch-tap-2585.wav");
     audio.volume = 0.8;
@@ -82,13 +80,7 @@ useEffect(() => {
           element={
             !isLoggedIn ? (
               <Auth
-                onLoginSuccess={async () => {
-                  setIsLoggedIn(true);
-
-                  const resp = await api.get("api/profiledata");
-                  
-                  setAvatar(resp.data.avatar);
-                }}
+                onLoginSuccess={checkAuth}
                 onSignupSuccess={() => setNeedsProjectForm(true)}
               />
             ) : (
@@ -129,6 +121,7 @@ useEffect(() => {
                 avatar={avatar}
                 setAvatar={setAvatar}
                 avatarArray={avatarArray}
+                setIsLoggedIn={setIsLoggedIn}
               >
                 <Routes>
                   <Route

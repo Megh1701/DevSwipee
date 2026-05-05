@@ -35,6 +35,7 @@ export default function SettingsButton({ light, avatar, setAvatar, avatarArray, 
     try {
       await api.post("auth/logout", {}, { withCredentials: true });
 
+      console.log('asd');
       localStorage.removeItem("token");
 
       setIsLoggedIn(false);
@@ -43,7 +44,7 @@ export default function SettingsButton({ light, avatar, setAvatar, avatarArray, 
       toast.success("Logged out");
 
       navigate("/", { replace: true });
-    } catch (err) {
+      } catch (err) {
       console.log(err);
     }
   };
