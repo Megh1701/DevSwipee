@@ -1,8 +1,13 @@
 import { useParams } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-import { Sun, Moon, Plus, Calendar, Users, Play, X, ChevronLeft, ChevronRight, User } from 'lucide-react';
+import { Sun, Moon, Plus, Calendar, Users, Play, X, ChevronLeft, ChevronRight, User, Trash2 } from 'lucide-react';
 import api from '@/lib/axios';
+import { fa } from 'zod/v4/locales';
+import { toast } from 'sonner';
+
+import socket from "../socket/socket.js";
+
 
 const priorityConfig = {
   LOW: { label: 'LOW', color: 'bg-emerald-500', textColor: 'text-emerald-700 dark:text-emerald-400' },
@@ -44,15 +49,60 @@ export default function DevSwipeKanban() {
   const [sessionInfo, setSessionInfo] = useState(null);
   const [isOwner, setIsOwner] = useState(null)
   const [isMember, setIsMember] = useState(null)
+  const [openMenuId, setOpenMenuId] = useState(null);
   const { sessionId } = useParams();
 
   console.log(sessionId);
+
+  const currentUser = localStorage.getItem("userId");
+
+
+  const isOwnercheck = sessionInfo?.members?.some(
+    (m) =>
+      m.role === "OWNER" &&
+      m.userId?._id?.toString() === currentUser?.toString()
+  );
+
+  const isOwnerOnlyMode = sessionInfo?.assignmentMode === "OWNER_ONLY";
+
+
+  console.log("isownerMode->",isOwnerOnlyMode)
+  console.log("isowner->",isOwnercheck)
+
+  const canAssign = isOwnerOnlyMode && isOwnercheck;
+
+
+  console.log("canAssign->",canAssign)
+  const isCurrentUserOwner = sessionInfo?.members?.some(
+    (member) =>
+      member.role === "OWNER" &&
+      member.userId?._id?.toString() === currentUser?.toString()
+  );
+
+  useEffect(() => {
+    if (!socket.connected) {
+      socket.connect();
+    }
+
+    const onConnect = () => {
+      console.log("connected:", socket.id);
+      socket.emit("join-session", sessionId);
+    };
+
+    socket.on("connect", onConnect);
+
+    return () => {
+      socket.off("connect", onConnect);
+    };
+  }, [sessionId]);
 
   useEffect(() => {
     const getSessionInfo = async () => {
       const res = await api.get(`/api/session/${sessionId}`);
       console.log(res.data)
       setSessionInfo(res.data);
+
+
 
       const owner = res.data.members.find(
         (member) => member.role === "OWNER"
@@ -77,6 +127,7 @@ export default function DevSwipeKanban() {
         console.log("DATA:", res.data);
         setTasks(res.data.tasks)
         setSessionData(res.data || null);
+
       } catch (err) {
         console.log(err.response?.data);
       }
@@ -115,20 +166,58 @@ export default function DevSwipeKanban() {
     localStorage.setItem('devswipe-dark', newDark.toString());
     applyTheme(newDark);
   };
-
-  const handleDragEnd = (result) => {
+  const handleDragEnd = async (result) => {
     const { source, destination, draggableId } = result;
+
     if (!destination) return;
 
-    setTasks(
-      tasks.map((task) =>
+    const newStatus = destination.droppableId.toUpperCase();
+
+
+    setTasks((prev) =>
+      prev.map((task) =>
         task._id === draggableId
-          ? { ...task, status: destination.droppableId }
+          ? { ...task, status: newStatus }
           : task
       )
     );
+
+    try {
+      await api.patch(`/api/tasks/${draggableId}/move`, {
+        status: newStatus,
+      });
+    } catch (err) {
+      console.log(err);
+    }
   };
 
+  useEffect(() => {
+    console.log(socket.connected);
+    socket.on("taskDeleted", (taskId) => {
+      setTasks((prev) => prev.filter((t) => t._id !== taskId));
+      toast.success("Task deleted");
+    });
+
+    return () => {
+      socket.off("taskDeleted");
+    };
+  }, []);
+
+  const deleteTask = async (taskId) => {
+    const confirmDelete = window.confirm("Delete this task?");
+    if (!confirmDelete) return;
+    try {
+      const res = await api.delete(`/api/delete/${taskId}`);
+      if (res.data?.success) {
+        setTasks((prev) => prev.filter((t) => t._id !== taskId));
+        toast.success(res.data.message || "Task Deleted");
+      } else {
+        toast.error("Failed to delete task");
+      }
+    } catch (err) {
+      console.log(err.response?.data);
+    }
+  };
   const resetTaskForm = () => {
     setNewTaskTitle('');
     setNewTaskDescription('');
@@ -138,30 +227,50 @@ export default function DevSwipeKanban() {
   };
 
   const addTask = async () => {
-    if (!newTaskTitle.trim()) return;
+  if (!newTaskTitle.trim()) return;
 
-    try {
-      const res = await api.post(`/api/${sessionId}/create`, {
-        title: newTaskTitle,
-        description: newTaskDescription,
-        priority: newTaskPriority.toUpperCase(),
-        assignedTo: selectedAssignee,
-        dueDate: newTaskDueDate,
-      });
-      setTasks((prev) => [
-        ...prev,
-        {
-          ...res.data.task,
-          status: res.data.task.status || "TODO",
-        },
-      ]);
 
-      resetTaskForm();
+  if (!newTaskDescription.trim()) {
+    toast.error("Description is required");
+    return;
+  }
 
-    } catch (err) {
-      console.log(err.response?.data);
-    }
-  };
+  if (!newTaskDueDate) {
+    toast.error("Please select a due date");
+    return;
+  }
+
+  if (!selectedAssignee) {
+    toast.error("Please assign a task");
+    return;
+  }
+
+  try {
+    const payload = {
+      title: newTaskTitle,
+      description: newTaskDescription,
+      priority: newTaskPriority.toUpperCase(),
+      assignedTo: selectedAssignee,
+      dueDate: newTaskDueDate,
+    };
+
+    const res = await api.post(`/api/${sessionId}/create`, payload);
+
+    setTasks((prev) => [
+      ...prev,
+      {
+        ...res.data.task,
+        status: res.data.task.status || "TODO",
+      },
+    ]);
+
+    resetTaskForm();
+    toast.success("Task created successfully");
+  } catch (err) {
+    console.log(err.response?.data);
+    toast.error(err.response?.data?.message || "Failed to create task");
+  }
+};
 
   const handleSetToday = () => setNewTaskDueDate(new Date());
 
@@ -199,7 +308,7 @@ export default function DevSwipeKanban() {
     );
   };
 
-  const completedCount = tasks.filter((t) => t.status === 'done').length;
+  const completedCount = tasks.filter((t) => t.status === 'DONE').length;
   const totalCount = tasks.length;
   const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
@@ -214,12 +323,22 @@ export default function DevSwipeKanban() {
       ref={provided.innerRef}
       {...provided.draggableProps}
       {...provided.dragHandleProps}
-      className={`bg-background border border-border rounded-xl p-4 transition-all duration-200
-      ${snapshot.isDragging
+      className={`group relative bg-background border border-border rounded-xl p-4 transition-all duration-200
+       ${snapshot.isDragging
           ? 'shadow-xl scale-[1.02] rotate-1 border-blue-500/40'
           : 'shadow-sm hover:shadow-md hover:border-blue-400/30'
         }`}
     >
+      {isCurrentUserOwner && (
+        <button
+          onClick={() => deleteTask(task._id)}
+          className="absolute cursor-pointer top-2 right-2 opacity-0 group-hover:opacity-100 transition-all
+    p-1.5 rounded-md hover:bg-red-500/10 text-red-500"
+        >
+          <Trash2 size={14} />
+        </button>
+      )}
+
       {/* Top Section */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
@@ -232,10 +351,7 @@ export default function DevSwipeKanban() {
             </p>
           )}
         </div>
-        <div
-          className={`w-2.5 h-2.5 rounded-full mt-1 flex-shrink-0 ${priorityConfig[task?.priority]?.color ?? 'bg-gray-400'
-            }`}
-        />
+
       </div>
 
       {/* Bottom Section */}
@@ -245,7 +361,6 @@ export default function DevSwipeKanban() {
         <div className="flex items-center gap-2 min-w-0">
           {task.assignedTo ? (
             <>
-
               {task.assignedTo?.avatar ? (
                 <img
                   src={task.assignedTo.avatar}
@@ -538,8 +653,7 @@ export default function DevSwipeKanban() {
                               onClick={addTask}
                               disabled={!newTaskTitle.trim()}
                               className="flex-1 px-3 py-2 bg-blue-500 text-accent-foreground rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                            >
-                              Add Task
+                            >add task
                             </button>
                             <button
                               onClick={resetTaskForm}
@@ -574,11 +688,10 @@ export default function DevSwipeKanban() {
                       <div className="flex gap-2">
                         <button
                           onClick={addTask}
-                          disabled={!newTaskTitle.trim()}
-                          className="flex-1 px-3 py-2 bg-blue-500 text-accent-foreground rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                        >
-                          Add Task
-                        </button>
+                          disabled={!newTaskTitle.trim() || (!canAssign)}
+ className="flex-1 px-3 py-2 bg-blue-500 text-accent-foreground rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                      
+                        >{canAssign ? "add Task" : "Only owner can assign tasks"}</button>
                         <button
                           onClick={resetTaskForm}
                           className="px-3 py-2 bg-secondary hover:bg-border rounded-lg text-sm font-medium transition-colors flex items-center gap-1"

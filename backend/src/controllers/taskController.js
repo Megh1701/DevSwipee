@@ -5,7 +5,7 @@ import { getIO } from "../socket/socket.js";
 
 export const createTask = async (req, res) => {
 
-const io=getIO();
+    const io = getIO();
 
     try {
 
@@ -46,7 +46,7 @@ const io=getIO();
             description: description || "",
             priority: priority || "MEDIUM",
             dueDate: dueDate || null,
-              assignedBy: req.user.id,
+            assignedBy: req.user.id,
             assignedTo,
             createdBy: user,
 
@@ -63,7 +63,7 @@ const io=getIO();
             ],
         });
 
-        io.to(sessionId).emit("taskCreated",task)
+        io.to(sessionId).emit("taskCreated", task)
 
         return res.status(201).json({
             success: true,
@@ -111,12 +111,111 @@ export const getSessionTasks = async (req, res) => {
     }
 }
 export const updateTask = async (req, res) => {
+    try {
+
+    }
+    catch (err) {
+
+    }
 }
 export const moveTask = async (req, res) => {
+    try {
+
+
+        const { taskId } = req.params;
+        const status = req.body?.status
+
+
+        const user = req.user.id;
+
+        if (!taskId) {
+            return res.status(404).json({
+                message: "taskId not found",
+            });
+        }
+        if (!status) {
+            return res.status(400).json({
+                message: "status is required",
+            });
+        }
+
+
+        const movetask = await TaskModel.findByIdAndUpdate(taskId,
+            { status }
+        )
+
+        return res.status(200).json({
+            success: true,
+            message: "Task moved successfully",
+            task: movetask,
+        });
+
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            success: false,
+            message: "Server error",
+        });
+    }
+
 }
 export const assignTask = async (req, res) => {
 }
-export const addComment = async (req, res) => {
-}
+
+
 export const deleteTask = async (req, res) => {
+    try {
+        const { taskId } = req.params;
+
+        const user = req.user.id;
+
+        if (!taskId) {
+            return res.status(404).json({
+                message: "taskId not found",
+            });
+        }
+
+        const tasks = await TaskModel.findById(taskId)
+        if (!tasks) {
+            return res.status(404).json({ message: "Task not found" });
+        }
+
+
+        const session = await SessionModel.findById(tasks.sessionId);
+
+        if (!session) {
+            return res.status(404).json({ message: "Session not found" });
+        }
+
+        const isOwner = session.owner.toString() === user;
+
+        if (!isOwner) {
+            return res.status(403).json({
+                message: "Not allowed to delete this task",
+            });
+        }
+
+        await TaskModel.findByIdAndDelete(taskId);
+
+        const io = getIO();
+
+        console.log("ROOM ID:", tasks.sessionId.toString());
+        io.to(tasks.sessionId.toString()).emit("taskDeleted", taskId);
+
+        console.log("EMITTING TO ROOM:", tasks.sessionId);
+        res.status(200).json({
+            success: true,
+            message: "Task deleted successfully",
+        });
+
+    }
+    catch (err) {
+        console.log(err);
+        res.status(500).json({ message: "Server error" });
+
+    }
+
 }
+
+
+
