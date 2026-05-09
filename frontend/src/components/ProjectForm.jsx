@@ -151,7 +151,6 @@ const ProjectForm = ({ onComplete }) => {
 
             const data = await res.json();
 
-            // ❌ backend error (mongoose / auth / validation)
             if (!res.ok) {
                 toast.error(data.message || "Project creation failed");
                 setIsLoading(false);
@@ -180,12 +179,12 @@ const ProjectForm = ({ onComplete }) => {
     };
 
     return (
-        <div className="min-h-screen bg-black flex items-center justify-center px-4 py-10">
+        <div className="min-h-screen bg-black px-3 py-6 sm:px-4 sm:py-10">
             <motion.div
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 0.6, ease: "easeOut" }}
-                className="w-full max-w-3xl border border-neutral-700 rounded-3xl p-4 sm:p-6 lg:p-8 bg-neutral-950"
+                className="mx-auto w-full max-w-3xl rounded-3xl border border-neutral-700 bg-neutral-950 p-4 sm:p-6 lg:p-8"
             >
                 <div className="flex flex-col gap-6">
 
@@ -295,8 +294,8 @@ const ProjectForm = ({ onComplete }) => {
                             className="min-h-[100px] sm:min-h-[140px] lg:min-h-[180px] resize-none bg-neutral-900 border-neutral-700 text-white placeholder:text-neutral-500 rounded-2xl p-4"
                         />
                     </div>
-                    <div className="flex gap-4 items-center w-full">
-                        <div className="space-y-2 w-1/2">
+                    <div className="flex w-full flex-col items-stretch gap-4 sm:flex-row">
+                        <div className="w-full space-y-2 sm:w-1/2">
                             <Label className="text-white">Github repo :</Label>
                             <Input
                                 name="githubUrl"
@@ -306,7 +305,7 @@ const ProjectForm = ({ onComplete }) => {
                                 className="bg-neutral-900 border-neutral-700 text-white"
                             />
                         </div>
-                        <div className="space-y-2 w-1/2 ">
+                        <div className="w-full space-y-2 sm:w-1/2">
                             <Label className="text-white">Live link :</Label>
                             <Input
                                 name="liveDemoUrl"

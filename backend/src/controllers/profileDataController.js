@@ -12,7 +12,6 @@ export const fetchprofiledata = async (req, res) => {
             return res.status(404).json({ message: "User not found" });
         }
 
-
         const interests = await UserInterest.find({ userId })
             .populate("interestId", "name");
 

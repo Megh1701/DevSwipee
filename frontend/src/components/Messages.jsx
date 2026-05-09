@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 
 export default function Messages({ light }) {
   const [matches, setMatches] = useState([]);
   const navigate = useNavigate();
-  const currentUserId = localStorage.getItem("userId");
+  const { userId: currentUserId } = useAuth();
 
   const bgMain = light
     ? "bg-gray-100 text-black"

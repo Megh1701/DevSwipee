@@ -12,12 +12,12 @@ export default function Auth({ onLoginSuccess,onSignupSuccess}) {
   return (
     <>
       <Toaster theme="dark" richColors position="top-center" />
-      <div className="min-h-screen bg-black flex items-center justify-center p-4">
+      <div className="flex min-h-screen items-center justify-center bg-black p-3 sm:p-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="w-full max-w-md"
+          className="w-full max-w-md overflow-x-hidden"
         >
           <AnimatePresence mode="wait">
             {mode === "login" && (

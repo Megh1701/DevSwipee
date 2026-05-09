@@ -118,47 +118,53 @@ export const updateTask = async (req, res) => {
 
     }
 }
+
 export const moveTask = async (req, res) => {
-    try {
+  try {
+    const { taskId } = req.params;
+    const { status } = req.body;
 
-
-        const { taskId } = req.params;
-        const status = req.body?.status
-
-
-        const user = req.user.id;
-
-        if (!taskId) {
-            return res.status(404).json({
-                message: "taskId not found",
-            });
-        }
-        if (!status) {
-            return res.status(400).json({
-                message: "status is required",
-            });
-        }
-
-
-        const movetask = await TaskModel.findByIdAndUpdate(taskId,
-            { status }
-        )
-
-        return res.status(200).json({
-            success: true,
-            message: "Task moved successfully",
-            task: movetask,
-        });
-
-    } catch (error) {
-        console.log(error);
-        return res.status(500).json({
-            success: false,
-            message: "Server error",
-        });
+    if (!taskId) {
+      return res.status(404).json({ message: "taskId not found" });
     }
 
-}
+    if (!status) {
+      return res.status(400).json({ message: "status is required" });
+    }
+
+    const updatedTask = await TaskModel.findByIdAndUpdate(
+      taskId,
+      { status },
+      { new: true }
+    )
+      .populate("assignedTo", "name email avatar")
+      .populate("createdBy", "name email");
+
+    if (!updatedTask) {
+      return res.status(404).json({ message: "Task not found" });
+    }
+
+    const io = getIO();
+
+    io.to(updatedTask.sessionId.toString()).emit(
+      "taskUpdated",
+      updatedTask
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Task moved successfully",
+      task: updatedTask,
+    });
+
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};
 export const assignTask = async (req, res) => {
 }
 

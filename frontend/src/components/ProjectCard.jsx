@@ -1,5 +1,3 @@
-"use client";
-
 import React, { useMemo, useRef, useState } from "react";
 import { Github, ExternalLink, Flag, X, ChevronRight, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring, animate } from "framer-motion";
@@ -224,7 +222,9 @@ const ProjectCard = ({ project, index, isTop, onSwipe, light, swipeBlocked, onRe
       className={`
         absolute rounded-3xl overflow-hidden border shadow-xl select-none will-change-transform
         ${cardBg} transition-colors duration-300
-        ${isExpanded ? "w-[32rem]" : "w-96"}
+        ${isExpanded
+  ? "w-96 sm:w-96 md:w-[32rem]"
+  : "w-96"}
         ${isTop && !isExpanded ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"}
       `}
     >

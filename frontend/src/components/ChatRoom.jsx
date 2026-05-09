@@ -6,9 +6,11 @@ import axios from "axios";
 import socket from "../socket/socket";
 import { Link } from "react-router-dom";
 import { set } from "zod";
+import { useAuth } from "@/context/AuthContext";
 
 export default function PremiumChatRoom({ light }) {
   const { matchId } = useParams();
+  const { userId } = useAuth();
 
   const [currentUserId, setCurrentUserId] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -29,9 +31,8 @@ export default function PremiumChatRoom({ light }) {
 
 
   useEffect(() => {
-    const id = localStorage.getItem("userId");
-    setCurrentUserId(id);
-  }, []);
+    setCurrentUserId(userId);
+  }, [userId]);
 
   useEffect(() => {
     const getSession = async () => {
@@ -67,8 +68,6 @@ export default function PremiumChatRoom({ light }) {
     };
   }, [])
 
-  /* ---------------- FETCH MATCH META ---------------- */
-
   useEffect(() => {
     const fetchPendingInvites = async () => {
       try {
@@ -77,7 +76,7 @@ export default function PremiumChatRoom({ light }) {
           { withCredentials: true }
         );
 
-        setIsInvite(res.data.invites); // 🔥 this fills pending invites
+        setIsInvite(res.data.invites); 
       } catch (err) {
         console.log(err.response?.data);
       }
@@ -146,8 +145,6 @@ export default function PremiumChatRoom({ light }) {
     };
   }, [matchId]);
 
-  /* ---------------- FETCH OLD MESSAGES ---------------- */
-
   useEffect(() => {
     const fetchMessages = async () => {
       try {
@@ -164,8 +161,6 @@ export default function PremiumChatRoom({ light }) {
     if (matchId) fetchMessages();
   }, [matchId]);
 
-  /* ---------------- AUTO SCROLL ---------------- */
-
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
@@ -180,7 +175,6 @@ export default function PremiumChatRoom({ light }) {
     setHasScrolled(isAwayFromBottom);
   };
 
-  /* ---------------- TYPING ---------------- */
 
   const handleTypingChange = (value) => {
     setInputValue(value);
@@ -201,7 +195,6 @@ export default function PremiumChatRoom({ light }) {
     }, 1000);
   };
 
-  /* ---------------- SEND MESSAGE ---------------- */
 
   const handleSendMessage = () => {
     if (!inputValue.trim() || !otherUserId) return;
@@ -295,8 +288,6 @@ export default function PremiumChatRoom({ light }) {
       console.error(err);
     }
   };
-  /* ---------------- UI THEME ---------------- */
-
   const bgMain = light
     ? "bg-gray-100 text-black"
     : "bg-neutral-950 text-white";
@@ -307,8 +298,6 @@ export default function PremiumChatRoom({ light }) {
 
   const ownBubble =
     "bg-gradient-to-br from-emerald-500 to-emerald-600 text-white";
-
-  /* ---------------- RENDER ---------------- */
 
   const handleProjectname = (e) => {
     setProjectName(e.target.value)

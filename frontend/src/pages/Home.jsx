@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import Sidebar from "../components/sidebar";
 import Filter from "../components/Filter.jsx";
 import CardFeed from "../components/CardFeed.jsx";
 import SwipeButton from "../components/SwipeButton.jsx";
@@ -15,9 +14,9 @@ const Home = ({ light }) => {
 
   return (
     <>
-      <div className="w-full h-full bg-bg-dark flex">
+      <div className="flex h-full w-full overflow-x-hidden bg-bg-dark">
 
-        <div className="relative flex-1 flex justify-center items-center flex-col gap-10">
+        <div className="relative flex flex-1 flex-col items-center justify-center gap-6 px-3 pb-6 pt-3 sm:gap-8 sm:px-4 md:gap-10 md:px-6 md:pt-6">
 
           {/* FILTER */}
           <Filter light={light} onApply={setFilters} />

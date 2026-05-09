@@ -7,7 +7,7 @@ export const projectDetailsControllers = async (req, res) => {
       description,
       stack,
       ProjectStatus,
-      thumbnailUrl,
+      thumbnail,
       githubUrl,
       liveDemoUrl,
     } = req.body;
@@ -17,12 +17,13 @@ export const projectDetailsControllers = async (req, res) => {
       return res.status(400).json({ message: "Title and description are required" });
     }
 
+    console.log("project submission data",req.body)
     const project = await ProjectModel.create({
       title,
       description,
       stack,
       ProjectStatus,
-      thumbnailUrl: thumbnailUrl,
+      thumbnailUrl:thumbnail,
       githubUrl,
       liveDemoUrl,
       userId: req.user.id,
@@ -68,12 +69,12 @@ export const updateprojectDetails = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
-
+    
     const updated = await ProjectModel.findOneAndUpdate(
       { _id: id, userId },
       {
         githubUrl: req.body.githubUrl,
-        thumbnailUrl: req.body.thumbnailUrl,
+        thumbnailUrl: req.body.thumbnail,
         title: req.body.title,
         description: req.body.description,
         stack: req.body.stack,
@@ -90,5 +91,22 @@ export const updateprojectDetails = async (req, res) => {
     res.json(updated);
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+};
+
+export const getMyProjectStatus = async (req, res) => {
+  try {
+    const user = await UserModel.findById(req.user.id);
+
+    const hasProject = user.projects && user.projects.length > 0;
+
+    return res.status(200).json({
+      hasProject,
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      message: error.message,
+    });
   }
 };

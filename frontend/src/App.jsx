@@ -14,7 +14,7 @@ import Session from "./components/Session"
 import api from "./lib/axios.js";
 import { useProfile } from "./context/ProfileData";
 import { verifyAuth } from "./lib/authverify.js";
-
+import { useAuth } from "./context/AuthContext";
 
 const avatarImports = import.meta.glob("./assets/*.{png,jpg,jpeg}", {
   eager: true,
@@ -26,41 +26,47 @@ const avatarArray = Object.values(avatarImports);
 
 export default function App() {
   const navigate = useNavigate();
+  const { userId, loading } = useAuth();
 
-   
-  // 🔐 AUTH STATE
+
   const { profile, setProfile } = useProfile();
   const [isLoggedIn, setIsLoggedIn] = useState(null);
   const [needsProjectForm, setNeedsProjectForm] = useState(false);
   const [light, setLight] = useState(false);
+  const [hasProject, setHasProject] = useState(null);
   const [avatar, setAvatar] = useState("");
 
-useEffect(() => {
-  checkAuth();
-}, []);
-const checkAuth = async () => {
-    try {
-      const isValid = (localStorage.getItem('userId'));
 
-      if (!isValid) {
+  useEffect(() => {
+    if (loading) return;
+    checkAuth();
+  }, [loading, userId]);
+
+
+  const checkAuth = async () => {
+    try {
+      if (!userId) {
         setIsLoggedIn(false);
         navigate("/", { replace: true });
         return;
       }
 
-      const resp = await api.get("api/profiledata");
+      const profileRes = await api.get("api/profiledata");
+      const projectRes = await api.get("/api/project/status");
 
-      setAvatar(resp.data.avatar || "");
-      setProfile(resp.data); 
-      console.log(profile)
+      setAvatar(profileRes.data.avatar || "");
+      setProfile(profileRes.data);
+
       setIsLoggedIn(true);
+      setHasProject(projectRes.data.hasProject);
+
     } catch (err) {
       setIsLoggedIn(false);
-      
       setAvatar("");
       navigate("/", { replace: true });
     }
   };
+
   const toggleTheme = () => {
     const audio = new Audio("/sounds/mixkit-on-or-off-light-switch-tap-2585.wav");
     audio.volume = 0.8;
@@ -79,10 +85,9 @@ const checkAuth = async () => {
           path="/"
           element={
             !isLoggedIn ? (
-              <Auth
-                onLoginSuccess={checkAuth}
-                onSignupSuccess={() => setNeedsProjectForm(true)}
-              />
+              <Auth onLoginSuccess={checkAuth} />
+            ) : hasProject === false ? (
+              <Navigate to="/project" replace />
             ) : (
               <Navigate to="/home" replace />
             )
@@ -115,26 +120,30 @@ const checkAuth = async () => {
           path="/*"
           element={
             isLoggedIn ? (
-              <AppLayout
-                light={light}
-                toggleTheme={toggleTheme}
-                avatar={avatar}
-                setAvatar={setAvatar}
-                avatarArray={avatarArray}
-                setIsLoggedIn={setIsLoggedIn}
-              >
-                <Routes>
-                  <Route
-                    path="home"
-                    element={<Home light={light} />}
-                  />
-                  <Route path="swipes" element={<Swipes light={light} />} />
-                  <Route path="messages" element={<Messages light={light} />} />
-                  <Route path="chat/:matchId" element={<ChatRoom light={light} />} />
-                  <Route path="requests" element={<Request light={light} />} />
-                  <Route path="ats-dashboard" element={<ATSDashboard light={light} />} />
-                </Routes>
-              </AppLayout>
+              hasProject === false ? (
+                <Navigate to="/project" replace />
+              ) : (
+                <AppLayout
+                  light={light}
+                  toggleTheme={toggleTheme}
+                  avatar={avatar}
+                  setAvatar={setAvatar}
+                  avatarArray={avatarArray}
+                  setIsLoggedIn={setIsLoggedIn}
+                >
+                  <Routes>
+                    <Route
+                      path="home"
+                      element={<Home light={light} />}
+                    />
+                    <Route path="swipes" element={<Swipes light={light} />} />
+                    <Route path="messages" element={<Messages light={light} />} />
+                    <Route path="chat/:matchId" element={<ChatRoom light={light} />} />
+                    <Route path="requests" element={<Request light={light} />} />
+                    <Route path="ats-dashboard" element={<ATSDashboard light={light} />} />
+                  </Routes>
+                </AppLayout>
+              )
             ) : (
               <Navigate to="/" replace />
             )

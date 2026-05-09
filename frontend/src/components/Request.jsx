@@ -134,10 +134,10 @@ const Request = ({ light }) => {
       className={`min-h-screen transition-colors ${light ? "bg-[#EDEDED]" : "bg-black"
         }`}
     >
-      <div className="relative px-4 py-6 min-h-screen flex flex-col justify-between">
+      <div className="relative flex min-h-screen flex-col justify-between overflow-x-hidden px-3 py-4 sm:px-4 sm:py-6 md:px-4 md:py-6">
         {/* ---------- HEADER & FILTER ---------- */}
-        <div className="flex items-center justify-around relative">
-          <h2 className={`text-2xl font-bold ${iconColor}`}>Requests</h2>
+        <div className="relative flex items-center justify-between gap-3 md:justify-around">
+          <h2 className={`truncate text-xl font-bold sm:text-2xl ${iconColor}`}>Requests</h2>
 
           <div className="relative z-30">
             <button
@@ -161,7 +161,7 @@ const Request = ({ light }) => {
                   animate={{ scale: 1, opacity: 1 }}
                   exit={{ scale: 0, opacity: 1 }}
                   transition={{ type: "tween", duration: 0.6 }}
-                  className="absolute top-8 right-0 z-30 w-52 rounded-xl bg-neutral-900 border border-white/10 shadow-xl p-2 origin-top-right"
+                  className="absolute right-0 top-8 z-30 w-48 origin-top-right rounded-xl border border-white/10 bg-neutral-900 p-2 shadow-xl"
                 >
                   <FilterItem
                     icon={<Sparkles size={16} />}
@@ -193,20 +193,22 @@ const Request = ({ light }) => {
           <>
             <motion.div
               onClick={() => setCurrent(null)}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-10"
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[999]"
             />
             <motion.div
               layoutId={`card-${current._id}`}
               onClick={(e) => e.stopPropagation()}
-              className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-auto rounded-2xl border p-4 z-20 ${cardBg} ${cardBorder}`}
-            >
+                className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-auto rounded-2xl border p-4 z-[1000] ${cardBg} ${cardBorder}`}
+     
+               >
+
               <motion.img
                 layoutId={`avatar-${current._id}`}
                 src={current.swiperId.avatar}
-                className="w-full aspect-square rounded-xl"
+                className="aspect-square w-full rounded-xl object-cover"
               />
               <div
-                className={`mt-3 space-y-2 border rounded-2xl p-4 text-neutral-500 h-1/2 ${cardBorder}`}
+                className={`mt-3 h-1/2 space-y-2 rounded-2xl border p-3 text-neutral-500 sm:p-4 ${cardBorder}`}
               >
                 <div className="flex items-center justify-between">
                   <motion.h2
@@ -262,7 +264,7 @@ const Request = ({ light }) => {
 
         {/* ---------- LIST ---------- */}
         {filteredRequests.length === 0 ? (
-          <div className="flex items-center justify-center min-h-screen">
+          <div className="flex min-h-[60vh] items-center justify-center">
             <p className="text-center text-gray-400">{emptyMessage()}</p>
           </div>
         ) : (
@@ -272,19 +274,19 @@ const Request = ({ light }) => {
             animate={{ x: 0, opacity: 1, filter: "blur(0px)" }}
             exit={{ x: 0, opacity: 0, filter: "blur(4px)" }}
             transition={{ type: "tween", duration: 0.6, ease: "easeOut" }}
-            className="flex flex-col gap-4 items-center"
+            className="flex flex-col items-center gap-3 sm:gap-4"
           >
             {currentSwipes.map((swipe) => (
               <motion.div
                 key={swipe._id}
                 layoutId={`card-${swipe._id}`}
                 onClick={() => setCurrent(swipe)}
-                className={`flex items-center gap-4 p-6 w-3/4 border rounded-lg cursor-pointer ${cardBg}`}
+                className={`flex w-[min(22rem,92vw)] cursor-pointer items-center gap-3 rounded-lg border p-3 sm:gap-4 sm:p-5 md:w-3/4 ${cardBg}`}
               >
                 <motion.img
                   layoutId={`avatar-${swipe._id}`}
                   src={swipe.swiperId.avatar}
-                  className="h-14 w-14 rounded-full"
+                  className="h-11 w-11 rounded-full object-cover sm:h-14 sm:w-14"
                 />
                 <div className="flex-1">
                   <motion.p layoutId={`name-${swipe._id}`} className="font-semibold">

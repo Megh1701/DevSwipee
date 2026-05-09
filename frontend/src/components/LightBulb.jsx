@@ -5,7 +5,7 @@ const Lightbulb = ({ light, toggleTheme, className = "" }) => {
     <button
       onClick={toggleTheme}
       className={`
-        z-60
+        z-[9999]
         rounded-full transition-all duration-300 active:scale-95 p-2
         border
         cursor-pointer

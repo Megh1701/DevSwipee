@@ -2,9 +2,9 @@ import React from "react";
 import arrow from "../assets/file.svg"
 const SwipeButton = ({ light }) => {
     return (
-        <div>
-            <div className="h-auto w-auto flex items-center gap-50 ">
-                <div className="flex items-center justify-center flex-col -rotate-12">
+        <div className="w-full">
+            <div className="flex flex-row h-auto w-full flex-col items-center justify-center gap-6 sm:flex-row sm:gap-12 md:gap-24">
+                <div className="flex flex-col items-center justify-center rotate-0 md:-rotate-12">
                     <svg className="h-14 w-14 scale-x-[-1]  " version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
                         width="100%" viewBox="0 0 1024 1024" enable-background="new 0 0 1024 1024" xml:space="preserve">
                         <path fill={light ? "#DC2626" : "#f87171"} opacity="1.000000" stroke="none"
@@ -66,9 +66,9 @@ M471.161865,514.343445
 	C496.129272,517.954956 484.272217,515.585938 471.161865,514.343445 
 z"/>
                     </svg>
-                    <div   style={{ color: light ? "#DC2626" : "#f87171" }}>Swipe left<br></br> to skip</div>
+                    <div className="text-center text-sm sm:text-base" style={{ color: light ? "#DC2626" : "#f87171" }}>Swipe left<br></br>to skip</div>
                 </div>
-                <div className="flex items-center justify-center flex-col rotate-12">
+                <div className="flex flex-col items-center justify-center rotate-0 md:rotate-12">
                     <svg className="h-14 w-14" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
                         width="100%" viewBox="0 0 1024 1024" enable-background="new 0 0 1024 1024" xml:space="preserve">
                         <path fill={light ? "#059669" : "#34D399"} opacity="1.000000" stroke="none"
@@ -130,7 +130,7 @@ M471.161865,514.343445
 	C496.129272,517.954956 484.272217,515.585938 471.161865,514.343445 
 z"/>
                     </svg>
-                    <div style={{ color: light ? "#059669" : "#34D399" }}>Swipe right <br></br>to connect</div>
+                    <div className="text-center text-sm sm:text-base" style={{ color: light ? "#059669" : "#34D399" }}>Swipe right<br></br>to connect</div>
                 </div>
 
             </div>

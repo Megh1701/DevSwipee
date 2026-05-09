@@ -1,5 +1,5 @@
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { Settings } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useProfile } from "@/context/profileData"
@@ -17,6 +17,7 @@ export default function SettingsButton({ light, avatar, setAvatar, avatarArray, 
   const [isRotated, setIsRotated] = useState(false)
   const [avatarPanelOpen, setAvatarPanelOpen] = useState(false)
   const [visible, setVisible] = useState(false);
+  const initialProfileRef = useRef(null);
   const { profile, setProfile } = useProfile();
   const navigate = useNavigate()
   const TOP_DOMAINS = [
@@ -44,7 +45,7 @@ export default function SettingsButton({ light, avatar, setAvatar, avatarArray, 
       toast.success("Logged out");
 
       navigate("/", { replace: true });
-      } catch (err) {
+    } catch (err) {
       console.log(err);
     }
   };
@@ -54,17 +55,23 @@ export default function SettingsButton({ light, avatar, setAvatar, avatarArray, 
   }
 
   const handleSave = async () => {
-    try {
-      const updatedData = {
-        name: profile.name,
-        email: profile.email,
-        city: profile.city,
-        interests: profile.interests,
-        avatar: profile.avatar,
-        age: profile.age,
-        gender: profile.gender
-      };
+    const updatedData = {
+      name: profile.name,
+      email: profile.email,
+      city: profile.city,
+      interests: profile.interests,
+      avatar: profile.avatar,
+      age: profile.age,
+      gender: profile.gender
+    };
+    const hasChanges =
+      JSON.stringify(initialProfileRef.current || {}) !== JSON.stringify(updatedData);
 
+    setVisible(false);
+    setIsRotated(false);
+    if (!hasChanges) return;
+
+    try {
       const res = await api.patch(
         "/api/profiledata",
         updatedData,
@@ -88,17 +95,31 @@ export default function SettingsButton({ light, avatar, setAvatar, avatarArray, 
     }
   };
   const handleInterestToggle = (interest) => {
-    setProfile((prev) => {
-      const alreadySelected = prev.interests.includes(interest);
+  setProfile((prev) => {
+    const maxSelection = 3;
 
+    const alreadySelected =
+      prev.interests.includes(interest);
+
+    if (alreadySelected) {
       return {
         ...prev,
-        interests: alreadySelected
-          ? prev.interests.filter((i) => i !== interest)
-          : [...prev.interests, interest],
+        interests: prev.interests.filter(
+          (i) => i !== interest
+        ),
       };
-    });
-  };
+    }
+
+    if (prev.interests.length >= maxSelection) {
+      toast.error("Sorry, maximum 3 domains only");
+      return prev;
+    }
+    return {
+      ...prev,
+      interests: [...prev.interests, interest],
+    };
+  });
+};
 
   const handleClick = async () => {
     if (!visible) {
@@ -107,7 +128,21 @@ export default function SettingsButton({ light, avatar, setAvatar, avatarArray, 
       audio.play()
     }
     setIsRotated(prev => !prev)
-    setVisible(prev => !prev)
+    setVisible(prev => {
+      const next = !prev;
+      if (!prev && profile) {
+        initialProfileRef.current = {
+          name: profile.name,
+          email: profile.email,
+          city: profile.city,
+          interests: profile.interests,
+          avatar: profile.avatar,
+          age: profile.age,
+          gender: profile.gender,
+        };
+      }
+      return next;
+    })
     // try {
     //   const res = await api.get("/api/profiledata");
 
@@ -128,7 +163,7 @@ export default function SettingsButton({ light, avatar, setAvatar, avatarArray, 
       <button
         onClick={handleClick}
         className={`
-          z-60 h-11 w-11 flex items-center justify-center
+           z-[9999] h-11 w-11 flex items-center justify-center
           rounded-full transition-all duration-300 active:scale-95 p-2
           border cursor-pointer
           ${light ? "border-black bg-[#EDEDED] text-black" : "border-white bg-black text-white"}
@@ -159,8 +194,7 @@ export default function SettingsButton({ light, avatar, setAvatar, avatarArray, 
 
               {/* Modal */}
               <motion.div
-                className={`fixed top-[52%] left-1/2 -translate-x-1/2 -translate-y-1/2 
-                 w-[50vw] h-[50vh] z-[100] rounded-xl p-3 
+                className={`fixed left-1/2 top-1/2 z-[998] h-[60vh] w-[calc(100vw-1.5rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 rounded-xl p-3 
                  ${light ? "bg-[#EDEDED]" : "bg-black"}`}
                 initial={{ scale: 0.5, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
@@ -200,7 +234,7 @@ export default function SettingsButton({ light, avatar, setAvatar, avatarArray, 
           <>
             {/* Overlay */}
             <motion.div
-              className="fixed top-0 left-0 w-full h-full bg-black/40 backdrop-blur-sm z-50"
+              className="fixed top-0 left-0 w-full h-full bg-black/40 backdrop-blur-sm z-[999]"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -214,7 +248,7 @@ export default function SettingsButton({ light, avatar, setAvatar, avatarArray, 
             <motion.div
               className={`
     fixed bottom-0 left-1/2 -translate-x-1/2 
-    w-[90vw] max-w-3xl h-[82vh] z-60
+    w-[95vw] max-w-3xl h-[85vh] z-[1000]
     shadow-xl rounded-t-2xl rounded-b-none 
     ${light ? "bg-black text-white" : "bg-[#EDEDED] text-black"}
   `}
@@ -229,7 +263,7 @@ export default function SettingsButton({ light, avatar, setAvatar, avatarArray, 
               }}
             >
 
-              <div className="w-full h-full border-x border-t border-gray-600 rounded-t-2xl p-6 flex flex-col relative">
+              <div className="relative flex h-full w-full flex-col rounded-t-2xl border-x border-t border-gray-600 p-4 sm:p-6">
 
                 {/* AVATAR */}
                 <div className="absolute -top-10 left-1/2 -translate-x-1/2">
@@ -243,7 +277,7 @@ export default function SettingsButton({ light, avatar, setAvatar, avatarArray, 
                   </div>
                 </div>
 
-                <div className="text-2xl font-extrabold">Edit Profile</div>
+                <div className="pr-10 text-xl font-extrabold sm:text-2xl">Edit Profile</div>
                 {/* CONTENT SCROLL */}
                 <div className="mt-10 flex-1 overflow-y-auto pr-1">
                   <div className="flex flex-col md:flex-row gap-8 w-full">
@@ -252,7 +286,7 @@ export default function SettingsButton({ light, avatar, setAvatar, avatarArray, 
                     <div className="w-full md:w-1/2 space-y-5">
                       {/* Name */}
                       <div>
-                        <label className="text-gray-400 text-sm">Name</label>
+                        <label className="mb-2 block text-gray-400 text-sm">Name</label>
                         <input
                           type="text"
                           value={profile.name}
@@ -263,7 +297,7 @@ export default function SettingsButton({ light, avatar, setAvatar, avatarArray, 
 
                       {/* Age */}
                       <div>
-                        <label className="text-gray-400 text-sm">Age</label>
+                        <label className="mb-2 block text-gray-400 text-sm">Age</label>
                         <input
                           type="text"
                           value={profile.age}
@@ -274,7 +308,7 @@ export default function SettingsButton({ light, avatar, setAvatar, avatarArray, 
 
                       {/* Email */}
                       <div>
-                        <label className="text-gray-400 text-sm">Email</label>
+                        <label className="mb-2 block text-gray-400 text-sm">Email</label>
                         <input
                           type="email"
                           value={profile.email}
@@ -285,7 +319,7 @@ export default function SettingsButton({ light, avatar, setAvatar, avatarArray, 
 
                       {/* Location */}
                       <div>
-                        <label className="text-gray-400 text-sm">City</label>
+                        <label className="mb-2 block text-gray-400 text-sm">City</label>
                         <input
                           type="text"
                           value={profile.city}
@@ -325,7 +359,7 @@ export default function SettingsButton({ light, avatar, setAvatar, avatarArray, 
                         />
                       </div> */}
                       <div>
-                        <label className="text-gray-400 text-sm">Gender</label>
+                        <label className="mb-2 block text-gray-400 text-sm">Gender</label>
                         <div className="flex gap-3 mt-3">
                           {["Male", "Female"].map(g => (
                             <button
@@ -362,7 +396,7 @@ export default function SettingsButton({ light, avatar, setAvatar, avatarArray, 
 
                       {/* Interests */}
                       <div>
-                        <label className="text-gray-400 text-sm">Interests</label>
+                        <label className="mb-2 block text-gray-400 text-sm">Interests</label>
                         <div className="flex flex-wrap gap-3 mt-3">
                           {TOP_DOMAINS.map((interest) => {
                             const selected = profile.interests.includes(interest);
@@ -389,7 +423,7 @@ export default function SettingsButton({ light, avatar, setAvatar, avatarArray, 
                 </div>
 
                 {/* BOTTOM BUTTONS */}
-                <div className="pt-4 flex items-center justify-between gap-4">
+                <div className="flex items-center justify-between gap-3 pt-4 sm:gap-4">
                   <button
                     onClick={handleLogout}
                     className="w-1/2 py-3 border border-red-500 text-red-500

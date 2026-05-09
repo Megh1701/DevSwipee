@@ -1,4 +1,4 @@
-"use client"
+
 
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
@@ -243,7 +243,7 @@ export default function ForgotPasswordFlow({ onBackToLogin }) {
     }
 
     return (
-        <div className="w-full max-w-md mx-auto relative">
+        <div className="relative mx-auto w-full max-w-md overflow-x-hidden">
             <AnimatePresence mode="wait" custom={direction}>
                 <motion.div
                     key={step}
@@ -253,7 +253,7 @@ export default function ForgotPasswordFlow({ onBackToLogin }) {
                     animate="center"
                     exit="exit"
                     transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                    className="bg-card-foreground border border-border rounded-2xl p-8 shadow-2xl relative overflow-hidden backdrop-blur-xl"
+                    className="relative overflow-hidden rounded-2xl border border-border bg-card-foreground p-4 shadow-2xl backdrop-blur-xl sm:p-8"
                 >
                     <div className="absolute top-0 left-0 right-0 h-1 bg-gray-800 overflow-hidden">
                         <motion.div
@@ -291,7 +291,7 @@ export default function ForgotPasswordFlow({ onBackToLogin }) {
                                 >
                                     <Mail className="w-8 h-8 text-blue-300" />
                                 </motion.div>
-                                <h2 className="text-4xl font-display font-bold text-background mb-3 tracking-tight">
+                                <h2 className="mb-3 text-3xl font-display font-bold tracking-tight text-background sm:text-4xl">
                                     Forgot Password?
                                 </h2>
                                 <p className="text-muted-foreground text-sm font-medium">Enter your email to receive OTP</p>
@@ -329,7 +329,7 @@ export default function ForgotPasswordFlow({ onBackToLogin }) {
                                 >
                                     <Shield className="w-8 h-8 text-blue-300" />
                                 </motion.div>
-                                <h2 className="text-4xl font-display font-bold text-background mb-3 tracking-tight">
+                                <h2 className="mb-3 text-3xl font-display font-bold tracking-tight text-background sm:text-4xl">
                                     Verify OTP
                                 </h2>
                                 <p className="text-background/40 text-sm font-medium">
@@ -340,7 +340,7 @@ export default function ForgotPasswordFlow({ onBackToLogin }) {
 
                             {/* OTP Form */}
                             <form onSubmit={handleOtpSubmit} className="space-y-6">
-                                <div className="flex justify-center gap-2">
+                                <div className="flex justify-center gap-1.5 sm:gap-2">
                                     {otp.map((digit, index) => (
                                         <input
                                             key={index}
@@ -351,7 +351,7 @@ export default function ForgotPasswordFlow({ onBackToLogin }) {
                                                 handleOtpChange(index, e.target.value.replace(/\D/g, ""))
                                             }
                                             onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                                            className="w-12 h-14 text-center text-2xl font-bold bg-neutral-900 caret-white  border-2 border-neutral-600 rounded-xl focus:border-blue-300 focus:ring-2 focus:ring-blue-400 outline-none transition-all text-amber-50"
+                                            className="h-12 w-10 rounded-xl border-2 border-neutral-600 bg-neutral-900 text-center text-lg font-bold text-amber-50 caret-white outline-none transition-all focus:border-blue-300 focus:ring-2 focus:ring-blue-400 sm:h-14 sm:w-12 sm:text-2xl"
                                         />
                                     ))}
                                 </div>
@@ -400,7 +400,7 @@ export default function ForgotPasswordFlow({ onBackToLogin }) {
                                 >
                                     <Lock className="w-8 h-8 text-blue-300" />
                                 </motion.div>
-                                <h2 className="text-4xl font-display font-bold text-background mb-3 tracking-tight">New Password</h2>
+                                <h2 className="mb-3 text-3xl font-display font-bold tracking-tight text-background sm:text-4xl">New Password</h2>
                                 <p className="text-background/60 text-sm font-medium">Create a strong password for your account</p>
                             </div>
 

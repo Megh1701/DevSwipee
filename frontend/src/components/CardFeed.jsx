@@ -94,12 +94,16 @@ const fetchProjects = useCallback(async (reset = false) => {
   setLoading(true);
 
   try {
-    const hasFilters =
-      filters.gender || filters.domain || filters.city || filters.distance !== 50;
+    console.log("Fetching projects with filters:", filters);
 
-    const endpoint = hasFilters
-      ? "/api/filtered"
-      : "/api/feed";
+    const hasFilters =
+      filters.gender ||
+      filters.domain ||
+      filters.city ||
+      filters.ats ||
+      filters.distance !== 50;
+
+    const endpoint = hasFilters ? "/api/filtered" : "/api/feed";
 
     const { data } = await api.get(endpoint, {
       params: {
@@ -109,16 +113,24 @@ const fetchProjects = useCallback(async (reset = false) => {
       withCredentials: true,
     });
 
+    console.log("Projects fetched:", data);
+
     if (reset) {
       setProjects(data || []);
+      console.log("Projects state after reset:", data || []);
       page.current = 1;
     } else {
-      setProjects((prev) => [...prev, ...data]);
+      setProjects((prev) => {
+        const updatedProjects = [...prev, ...data];
+        console.log("Projects state after append:", updatedProjects);
+        return updatedProjects;
+      });
       page.current += 1;
     }
 
     hasMoreRef.current = !!data?.length;
-
+  } catch (error) {
+    console.error("Error fetching projects:", error);
   } finally {
     fetching.current = false;
     setLoading(false);
@@ -135,7 +147,8 @@ const fetchProjects = useCallback(async (reset = false) => {
   filters.distance,
   filters.gender,
   filters.domain,
-  filters.city
+  filters.city,
+    filters.ats
 ]);
 
 
@@ -143,8 +156,6 @@ const fetchProjects = useCallback(async (reset = false) => {
   // ── swipe ────────────────────────────────────────────────
   const handleSwipe = useCallback(async (projectId, direction, ownerId) => {
 
-
-    // optimistic: remove card + remember it immediately
     addSeenId(projectId);
     setProjects((prev) => {
       const next = prev.filter((p) => p._id !== projectId);
@@ -159,7 +170,7 @@ const fetchProjects = useCallback(async (reset = false) => {
     } catch (err) {
       if (err.response?.status === 403 || err.response?.status === 429) {
         const resetAt = err.response?.data?.resetAt;
-        setBlocked(resetAt);        // ✅ store expiry
+        setBlocked(resetAt);       
         setSwipeBlocked(true);
       }
     }
@@ -167,7 +178,7 @@ const fetchProjects = useCallback(async (reset = false) => {
 
   // ── render ───────────────────────────────────────────────
   const visibleCards = projects.slice(0, VISIBLE_CARDS);
-  console.log(projects)
+  console.log("Visible cards:", visibleCards);
   return (
     <div className="relative w-full h-2/4 flex justify-center items-center">
 
@@ -193,8 +204,14 @@ const fetchProjects = useCallback(async (reset = false) => {
       </AnimatePresence>
 
       {swipeBlocked && (
-        <div className="fixed top-0 right-0 h-screen w-[75%] bg-black/70 backdrop-blur-md flex flex-col justify-center items-center z-[9999]">
-          <p className="text-white text-3xl font-bold mb-3">🚫 Daily Limit Reached</p>
+      <div className="
+fixed inset-0 
+w-full sm:w-[75%] sm:right-0 sm:left-auto
+h-screen 
+bg-black/70 backdrop-blur-md 
+flex flex-col justify-center items-center 
+z-998
+">     <p className="text-white text-3xl font-bold mb-3">🚫 Daily Limit Reached</p>
           <p className="text-neutral-300 text-sm">
             Try again in {timeLeft}
           </p>

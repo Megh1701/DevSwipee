@@ -2,7 +2,7 @@ import UserModel from "../models/UserModel.js";
 import SwipeModel from "../models/SwipeModel.js";
 import ProjectModel from "../models/ProjectModel.js";
 
-const DAILY_LIMIT = 20;
+const DAILY_LIMIT = 10;
 
 export const SwipeHandler = async (req, res) => {
   try {
@@ -44,7 +44,6 @@ export const SwipeHandler = async (req, res) => {
 
     const now = new Date();
 
-    // ✅ Reset after 24h
     if (!user.swipeResetAt || now > user.swipeResetAt) {
       user.dailySwipeCount = 0;
       user.swipeResetAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);

@@ -12,6 +12,13 @@ export const initializeSocket = (server) => {
 
   io.on("connection", (socket) => {
     console.log("User connected:", socket.id);
+    
+
+    // JOIN SESSION ROOM (FOR TASK COLLABORATION)
+    socket.on("join-session", (sessionId) => {
+      socket.join(sessionId);
+      console.log(`User ${socket.id} joined session room: ${sessionId}`);
+    });
 
     // JOIN CHAT ROOM (MATCH)
     socket.on("joinRoom", (matchId) => {
@@ -51,6 +58,15 @@ export const initializeSocket = (server) => {
 
     socket.on("stopTyping", ({ matchId, senderId }) => {
       socket.to(matchId).emit("userStoppedTyping", senderId);
+    });
+
+    // TASK UPDATES (Broadcast to session room)
+    socket.on("updateTask", (sessionId, taskData) => {
+      io.to(sessionId).emit("taskUpdated", taskData);
+    });
+
+    socket.on("deleteTask", (sessionId, taskId) => {
+      io.to(sessionId).emit("taskDeleted", taskId);
     });
 
     // DISCONNECT

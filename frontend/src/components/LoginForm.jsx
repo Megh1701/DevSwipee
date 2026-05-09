@@ -7,6 +7,7 @@ import { Label } from "./ui/Label.jsx";
 import { Button } from "./ui/Button.jsx";
 import { loginSchema } from "../../../Schemas/validation/authSchema.js";
 import api from "@/lib/axios.js";
+import { useAuth } from "@/context/AuthContext";
 
 export default function LoginForm({ onSwitchToSignup, onForgotPassword, onLoginSuccess }) {
     const [email, setEmail] = useState("")
@@ -15,7 +16,7 @@ export default function LoginForm({ onSwitchToSignup, onForgotPassword, onLoginS
     const [isLoading, setIsLoading] = useState(false)
     const [emailFocused, setEmailFocused] = useState(false)
     const [passwordFocused, setPasswordFocused] = useState(false)
-
+const { setUserId } = useAuth();
 
 
     const handleSubmit = async (e) => {
@@ -40,15 +41,16 @@ export default function LoginForm({ onSwitchToSignup, onForgotPassword, onLoginS
             }
             )
             console.log(response.data);
-            localStorage.setItem("token", response.data.token);
-            localStorage.setItem("userId", response.data.user.id);
-            toast.success("Welcome back 👋");
+            setUserId(response.data.user.id);
+                   toast.success("Welcome back 👋");
 
             if (onLoginSuccess)
-                onLoginSuccess();
 
+                await onLoginSuccess();
+            console.log(response.data);
         }
         catch (error) {
+            console.error(error);
             toast.error(
                 error.response?.data?.message || "Login failed"
             );
@@ -64,7 +66,7 @@ export default function LoginForm({ onSwitchToSignup, onForgotPassword, onLoginS
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -20 }}
             transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-            className="bg-black-500 border-neutral-700 border-2 rounded-2xl p-8 shadow-2xl backdrop-blur-xl relative overflow-hidden"
+            className="relative overflow-hidden rounded-2xl border-2 border-neutral-700 bg-black-500 p-4 shadow-2xl backdrop-blur-xl sm:p-8"
         >
             {/* Background Glow */}
             <motion.div
@@ -83,7 +85,7 @@ export default function LoginForm({ onSwitchToSignup, onForgotPassword, onLoginS
                 transition={{ delay: 0.1, duration: 0.5 }}
                 className="mb-8 text-center relative z-10"
             >
-                <h1 className="text-4xl font-bold text-white mb-2 tracking-tight">Welcome Back</h1>
+                <h1 className="mb-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">Welcome Back</h1>
                 <p className="text-gray-400 text-sm font-medium">Sign in to continue</p>
             </motion.div>
 
@@ -154,6 +156,7 @@ export default function LoginForm({ onSwitchToSignup, onForgotPassword, onLoginS
                     className="text-right relative z-10 m-3"
                 >
                     <button
+                        type="button"
                         onClick={onForgotPassword}
                         className="text-xs text-blue-400 cursor-pointer hover:text-blue-300 font-light transition-colors duration-200 underline-offset-4 hover:underline"
                     >

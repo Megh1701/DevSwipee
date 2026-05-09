@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useFeed } from "@/context/Feed";
 const Filter = ({ light, onApply }) => {
@@ -7,6 +7,9 @@ const Filter = ({ light, onApply }) => {
 
   const [draft, setDraft] = useState(filters);
 
+  useEffect(() => {
+    setDraft(filters);
+  }, [filters]);
 
   const TOP_DOMAINS = ["Web Development",
     "Mobile App Development",
@@ -27,7 +30,9 @@ const Filter = ({ light, onApply }) => {
     }));
   };
   const handleApply = () => {
-    setFilters(draft);  
+    setFilters(draft);
+
+    onApply?.(draft);
     setShowFilter(false);
   }
 
@@ -94,10 +99,10 @@ const Filter = ({ light, onApply }) => {
   };
 
   return (
-    <div className="relative">
+    <div className="relative mx-auto w-fit max-w-full">
       {/* FILTER BAR */}
       <motion.div
-        className={`flex items-center gap-1 border rounded-xl overflow-hidden 
+        className={`flex w-fit items-center gap-1 overflow-hidden rounded-xl border 
           ${barBg} ${barText} ${barShadow} transition-shadow duration-300`}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -111,7 +116,7 @@ const Filter = ({ light, onApply }) => {
         {/* FILTER BUTTON */}
         <motion.button
           onClick={() => setShowFilter(!showFilter)}
-          className={`px-5 py-3 flex items-center gap-2.5 ${barHover} 
+          className={`flex cursor-pointer min-h-10 items-center gap-2.5 px-4 py-2.5 sm:px-5 sm:py-3 ${barHover} 
             transition-all duration-200 relative group`}
           variants={buttonVariants}
           whileHover="hover"
@@ -135,8 +140,19 @@ const Filter = ({ light, onApply }) => {
         <div className={`h-6 w-px ${light ? "bg-gray-300" : "bg-gray-700"} opacity-40`} />
 
         <motion.button
-          className={`px-5 py-3 flex items-center gap-2.5 ${barHover} 
-            transition-all duration-200`}
+          onClick={() => {
+            const updatedFilters = {
+              ...draft,
+              ats: true,
+            };
+
+            setDraft(updatedFilters);
+            setFilters(updatedFilters);
+            onApply?.(updatedFilters);
+
+          }}
+          className={`flex min-h-10 items-center gap-2.5 px-4 py-2.5 sm:px-5 sm:py-3 ${barHover} 
+            transition-all duration-200 cursor-pointer`}
           variants={buttonVariants}
           whileHover="hover"
           whileTap="tap"
@@ -159,7 +175,7 @@ const Filter = ({ light, onApply }) => {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={() => setShowFilter(false)}
-            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
+            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[999]"
           />
         )}
       </AnimatePresence>
@@ -172,10 +188,11 @@ const Filter = ({ light, onApply }) => {
             initial="hidden"
             animate="visible"
             exit="exit"
-            className={`absolute top-16 -left-20
-              ${dropdownBg} ${dropdownText}
-              p-10 h-105 rounded-xl w-100 border
-              backdrop-blur-xl z-[100]`}
+            className={`absolute left-1/2 -translate-x-1/2 top-16
+  w-[min(24rem,calc(100vw-1.5rem))]
+  ${dropdownBg} ${dropdownText}
+  h-auto max-h-[80vh] overflow-y-auto rounded-xl border p-5 sm:p-8
+  backdrop-blur-xl z-[1000]`}
           >
             {/* Header */}
             <motion.div

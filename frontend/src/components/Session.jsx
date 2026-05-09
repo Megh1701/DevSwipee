@@ -85,14 +85,43 @@ export default function DevSwipeKanban() {
     }
 
     const onConnect = () => {
-      console.log("connected:", socket.id);
+      console.log("Socket connected:", socket.id);
       socket.emit("join-session", sessionId);
     };
 
     socket.on("connect", onConnect);
 
+    // Listen for task creation events
+    socket.on("taskCreated", (newTask) => {
+      console.log("New task created:", newTask);
+      setTasks((prev) => [
+        ...prev,
+        {
+          ...newTask,
+          status: newTask.status || "TODO",
+        },
+      ]);
+      toast.success("Task created by team member");
+    });
+
+    socket.on("taskDeleted", (taskId) => {
+      console.log("Task deleted:", taskId);
+      setTasks((prev) => prev.filter((t) => t._id !== taskId));
+      toast.success("Task deleted by team member");
+    });
+
+    socket.on("taskUpdated", (updatedTask) => {
+      console.log("Task updated:", updatedTask);
+      setTasks((prev) =>
+        prev.map((t) => (t._id === updatedTask._id ? updatedTask : t))
+      );
+    });
+
     return () => {
       socket.off("connect", onConnect);
+      socket.off("taskCreated");
+      socket.off("taskDeleted");
+      socket.off("taskUpdated");
     };
   }, [sessionId]);
 
@@ -191,17 +220,7 @@ export default function DevSwipeKanban() {
     }
   };
 
-  useEffect(() => {
-    console.log(socket.connected);
-    socket.on("taskDeleted", (taskId) => {
-      setTasks((prev) => prev.filter((t) => t._id !== taskId));
-      toast.success("Task deleted");
-    });
 
-    return () => {
-      socket.off("taskDeleted");
-    };
-  }, []);
 
   const deleteTask = async (taskId) => {
     const confirmDelete = window.confirm("Delete this task?");
@@ -410,31 +429,31 @@ export default function DevSwipeKanban() {
   );
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-full bg-background text-foreground">
       {/* Header */}
       <header className="border-b border-border bg-card">
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-3xl font-bold">{sessionInfo?.projectName || 'DevSwipe'}</h1>
+        <div className="mx-auto w-full max-w-7xl px-3 py-4 sm:px-4 md:px-6 md:py-6">
+          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <h1 className="truncate text-2xl font-bold sm:text-3xl">{sessionInfo?.projectName || 'DevSwipe'}</h1>
               {sessionInfo?.description && (
-                <p className="text-sm text-muted-foreground mt-1">{sessionInfo.description}</p>
+                <p className="mt-1 text-sm text-muted-foreground break-words">{sessionInfo.description}</p>
               )}
-              <div className='gap-1'>
-                <span className="px-2 py-1 rounded-md bg-secondary text-xs font-medium">
+              <div className='mt-2 flex flex-wrap gap-2'>
+                <span className="rounded-md bg-secondary px-2 py-1 text-xs font-medium">
                   {sessionInfo?.assignmentMode === "ANYONE" && "Anyone can assign tasks"}
                   {sessionInfo?.assignmentMode === "OWNER_ONLY" && "Only owner assigns"}
                   {sessionInfo?.assignmentMode === "SELF_ONLY" && "Self assign only"}
                 </span>
 
-                <span className="px-2 py-1 rounded-md bg-blue-500/10 text-blue-500 text-xs font-medium">
+                <span className="rounded-md bg-blue-500/10 px-2 py-1 text-xs font-medium text-blue-500">
                   Live Collaboration
                 </span>
               </div>
             </div>
             <button
               onClick={toggleTheme}
-              className="p-1 hover:bg-secondary rounded-lg transition-colors"
+              className="h-10 w-10 rounded-lg p-1 transition-colors hover:bg-secondary"
               aria-label="Toggle theme"
             >
               {isDark ? <Sun size={20} /> : <Moon size={20} />}
@@ -490,36 +509,36 @@ export default function DevSwipeKanban() {
             </span>
           </div>
         </div>
-        <div className="flex items-center gap-4  absolute right-10 top-20">
+        <div className="static mt-3 flex flex-col gap-2 pr-3 sm:absolute sm:right-10 sm:top-20 sm:mt-0 sm:pr-0">
           <div className="text-sm">
             <span className="font-semibold">{completedCount}/{totalCount}</span>
             <span className="text-muted-foreground"> tasks completed</span>
           </div>
 
-          <div className="w-48 h-2 bg-secondary rounded-full overflow-hidden">
+          <div className="h-2 w-full max-w-56 rounded-full bg-secondary overflow-hidden">
             <div
               className="h-full bg-blue-500 rounded-full transition-all duration-300"
               style={{ width: `${progressPercent}%` }}
             />
           </div>
 
-          <span className="text-sm font-semibold text-blue-500 w-12">
+          <span className="w-12 text-sm font-semibold text-blue-500">
             {progressPercent}%
           </span>
         </div>
       </header>
 
       {/* Kanban Board */}
-      <main className="max-w-7xl mx-auto px-6 py-8">
+      <main className="mx-auto w-full max-w-7xl px-3 py-4 sm:px-4 md:px-6 md:py-8">
         <DragDropContext onDragEnd={handleDragEnd}>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 md:gap-6">
             {/* To Do */}
             <Droppable droppableId="todo">
               {(provided, snapshot) => (
                 <div
                   {...provided.droppableProps}
                   ref={provided.innerRef}
-                  className={`bg-card border border-border rounded-xl p-5 min-h-96 transition-all ${snapshot.isDraggingOver ? 'bg-secondary/50 border-accent/50' : ''
+                  className={`bg-card border border-border rounded-xl p-4 sm:p-5 min-h-96 transition-all ${snapshot.isDraggingOver ? 'bg-secondary/50 border-accent/50' : ''
                     }`}
                 >
                   <div className="flex items-center justify-between mb-4">
@@ -537,20 +556,20 @@ export default function DevSwipeKanban() {
                       onKeyPress={(e) => e.key === 'Enter' && addTask()}
                       autoFocus
                       placeholder="Add new task..."
-                      className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all"
+                      className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm placeholder-muted-foreground transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-accent"
                     />
 
                     <textarea
                       value={newTaskDescription}
                       onChange={(e) => setNewTaskDescription(e.target.value)}
                       placeholder="Task description..."
-                      className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all resize-none h-20"
+                      className="h-20 w-full resize-none rounded-lg border border-border bg-background px-3 py-2.5 text-sm placeholder-muted-foreground transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-accent"
                     />
 
                     <div className="relative" ref={datePickerRef}>
                       <button
                         onClick={() => setShowDatePicker(!showDatePicker)}
-                        className="w-full text-left px-3 py-2 bg-background border border-border rounded-lg text-sm text-muted-foreground hover:border-accent hover:text-foreground transition-all flex items-center gap-2 group"
+                        className="group flex min-h-10 w-full items-center gap-2 rounded-lg border border-border bg-background px-3 py-2.5 text-left text-sm text-muted-foreground transition-all hover:border-accent hover:text-foreground"
                       >
                         <Calendar size={16} className="group-hover:text-accent transition-colors" />
                         {newTaskDueDate
@@ -560,14 +579,14 @@ export default function DevSwipeKanban() {
                       </button>
 
 
-                      <div className="flex gap-2 m-4">
+                      <div className="m-2 flex flex-wrap gap-2 sm:m-4">
                         <span>Priority:</span>
                         {['low', 'medium', 'high'].map((p) => (
                           <button
                             key={p}
                             type="button"
                             onClick={() => setNewTaskPriority(p)}
-                            className={`px-3 py-1 rounded-lg text-xs font-medium border transition-all ${newTaskPriority === p
+                            className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-all ${newTaskPriority === p
                               ? 'bg-blue-500 text-white border-blue-500'
                               : 'bg-background border-border hover:border-blue-400'
                               }`}
@@ -578,7 +597,7 @@ export default function DevSwipeKanban() {
                       </div>
 
                       {showDatePicker && (
-                        <div className="absolute top-full left-0 mt-2 bg-card border border-border rounded-lg shadow-lg p-4 z-50 w-72">
+                        <div className="absolute left-0 top-full z-50 mt-2 w-[min(18rem,calc(100vw-2rem))] rounded-lg border border-border bg-card p-3 shadow-lg sm:p-4">
                           {/* Quick Options */}
                           <div className="grid grid-cols-2 gap-2 mb-4">
                             <button
@@ -652,12 +671,12 @@ export default function DevSwipeKanban() {
                             <button
                               onClick={addTask}
                               disabled={!newTaskTitle.trim()}
-                              className="flex-1 px-3 py-2 bg-blue-500 text-accent-foreground rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                            className="flex-1 rounded-lg bg-blue-500 px-3 py-2.5 text-sm font-medium text-accent-foreground transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                             >add task
                             </button>
                             <button
                               onClick={resetTaskForm}
-                              className="px-3 py-2 bg-secondary hover:bg-border rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
+                              className="flex min-h-10 items-center gap-1 rounded-lg bg-secondary px-3 py-2.5 text-sm font-medium transition-colors hover:bg-border"
                             >
                               <X size={16} />
                               Cancel
@@ -685,16 +704,16 @@ export default function DevSwipeKanban() {
 
                     </select>
                     {!showDatePicker && (
-                      <div className="flex gap-2">
+                      <div className="flex flex-col gap-2 sm:flex-row">
                         <button
                           onClick={addTask}
                           disabled={!newTaskTitle.trim() || (!canAssign)}
- className="flex-1 px-3 py-2 bg-blue-500 text-accent-foreground rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+className="flex-1 rounded-lg bg-blue-500 px-3 py-2.5 text-sm font-medium text-accent-foreground transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                       
                         >{canAssign ? "add Task" : "Only owner can assign tasks"}</button>
                         <button
                           onClick={resetTaskForm}
-                          className="px-3 py-2 bg-secondary hover:bg-border rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
+                          className="flex min-h-10 items-center justify-center gap-1 rounded-lg bg-secondary px-3 py-2.5 text-sm font-medium transition-colors hover:bg-border"
                         >
                           <X size={16} />
                           Cancel
@@ -730,7 +749,7 @@ export default function DevSwipeKanban() {
                 <div
                   {...provided.droppableProps}
                   ref={provided.innerRef}
-                  className={`bg-card border border-border rounded-xl p-5 min-h-96 transition-all ${snapshot.isDraggingOver ? 'bg-secondary/50 border-accent/50' : ''
+                  className={`bg-card border border-border rounded-xl p-4 sm:p-5 min-h-96 transition-all ${snapshot.isDraggingOver ? 'bg-secondary/50 border-accent/50' : ''
                     }`}
                 >
                   <div className="flex items-center justify-between mb-4">
@@ -764,7 +783,7 @@ export default function DevSwipeKanban() {
                 <div
                   {...provided.droppableProps}
                   ref={provided.innerRef}
-                  className={`bg-card border border-border rounded-xl p-5 min-h-96 transition-all ${snapshot.isDraggingOver ? 'bg-secondary/50 border-accent/50' : ''
+                  className={`bg-card border border-border rounded-xl p-4 sm:p-5 min-h-96 transition-all ${snapshot.isDraggingOver ? 'bg-secondary/50 border-accent/50' : ''
                     }`}
                 >
                   <div className="flex items-center justify-between mb-4">

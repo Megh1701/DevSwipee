@@ -17,7 +17,7 @@ const AVATARS = Object.values(avatarImports).map(mod => mod.default ?? mod);
 
 function AnimatedDigit({ value, themeColor }) {
     return (
-        <div style={{ position: "relative", overflow: "hidden", height: "20vh", width: "5vw" }}>
+        <div style={{ position: "relative", overflow: "hidden", height: "60px", width: "40px", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <AnimatePresence mode="popLayout">
                 <motion.span
                     key={value}
@@ -33,6 +33,11 @@ function AnimatedDigit({ value, themeColor }) {
                         width: "100%",
                         textAlign: "center",
                         color: themeColor,
+                        fontSize: "48px",
+                        fontWeight: "bold",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
                     }}
                 >
                     {value}
@@ -185,25 +190,27 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
     const handleCitySubmit = (e) => {
         e.preventDefault();
 
-        const isValid = validateStep({
-            city: true,
-            location: true,
-        });
-
-        if (!isValid) return;
-
-        console.log("Selected Location:", selectedLocation); // ✅ debug
-
         if (!selectedLocation) {
             toast.error("Please select a city from suggestions");
             return;
         }
 
-        setFormData((prev) => ({
-            ...prev,
+        const cityPayload = {
+            ...formData,
             city: selectedLocation.city,
-            location: selectedLocation.location
-        }));
+            location: selectedLocation.location,
+        };
+
+        const isValid = validateStep({
+            city: true,
+            location: true,
+        }, cityPayload);
+
+        if (!isValid) return;
+
+        console.log("Selected Location:", selectedLocation); 
+
+        setFormData(cityPayload);
 
         toast.success("Just one more and you’re all set!");
         setDirection(1);
@@ -319,10 +326,10 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
         }),
     };
 
-    const validateStep = (fields) => {
+    const validateStep = (fields, values = formData) => {
     const partialSchema = signupSchema.pick(fields);
 
-    const result = partialSchema.safeParse(formData);
+    const result = partialSchema.safeParse(values);
 
     if (!result.success) {
         const firstError = result.error.issues[0]?.message;
@@ -334,7 +341,7 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
 }
 
     return (
-        <div className="w-full max-w-md mx-auto relative select-none ">
+        <div className="relative mx-auto w-full max-w-md select-none overflow-x-hidden px-3 sm:px-0">
             <AnimatePresence mode="wait" custom={direction}>
                 {step === "initial" && (
                     <motion.div
@@ -345,7 +352,7 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
                         animate="center"
                         exit="exit"
                         transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                        className="bg-neutral-950 border  border-neutral-700 rounded-2xl p-8 shadow-2xl relative overflow-hidden backdrop-blur-xl"
+                        className="relative overflow-hidden rounded-2xl border border-neutral-700 bg-neutral-950 p-3 shadow-2xl backdrop-blur-xl sm:p-6"
                     >
                         <div className="absolute top-0 left-0 right-0 h-1 bg-gray-800 overflow-hidden">
                             <motion.div
@@ -363,28 +370,27 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
                             </motion.div>
                         </div>
 
-                        <div className="mb-8 text-center">
+                        <div className="mb-6 text-center">
                             <motion.div
                                 initial={{ scale: 0 }}
                                 animate={{ scale: 1, rotate: 360 }}
                                 transition={{ duration: 0.6, ease: "easeOut" }}
-                                className="inline-block mb-4"
+                                className="inline-block mb-3"
                             >
-                                <Sparkles className="w-12 h-12 text-blue-400" />
+                                <Sparkles className="w-8 h-8 sm:w-12 sm:h-12 text-blue-400" />
                             </motion.div>
-                            <h1 className="text-4xl font-bold text-white mb-2 tracking-tight">Create Account</h1>
-                            <p className="text-gray-400 text-sm font-medium">Start your journey with us</p>
+                            <h1 className="mb-2 text-2xl sm:text-3xl font-bold tracking-tight text-white">Create Account</h1>
+                            <p className="text-gray-400 text-xs sm:text-sm font-medium">Start your journey with us</p>
                         </div>
 
-                        <form onSubmit={handleInitialSubmit} className="space-y-5">
+                        <form onSubmit={handleInitialSubmit} className="space-y-4">
                             <motion.div
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.1 }}
-                                className="space-y-2"
+                                className="space-y-1.5"
                             >
-                                <Label htmlFor="name" className="text-white text-sm font-semibold flex items-center gap-2">
-
+                                <Label htmlFor="name" className="text-white text-xs sm:text-sm font-semibold flex items-center gap-2">
                                     Name
                                 </Label>
                                 <Input
@@ -393,7 +399,7 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
                                     value={formData.name}
                                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                     placeholder="John Doe"
-                                    className="bg-neutral-900 border-neutral-700 text-white placeholder:text-gray-500 h-12"
+                                    className="bg-neutral-900 border-neutral-700 text-white placeholder:text-gray-500 h-10 sm:h-12 text-sm"
                                     required
                                 />
                             </motion.div>
@@ -402,10 +408,9 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.2 }}
-                                className="space-y-2"
+                                className="space-y-1.5"
                             >
-                                <Label htmlFor="signup-email" className="text-white text-sm font-semibold flex items-center gap-2">
-
+                                <Label htmlFor="signup-email" className="text-white text-xs sm:text-sm font-semibold flex items-center gap-2">
                                     Email
                                 </Label>
                                 <Input
@@ -414,7 +419,7 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
                                     value={formData.email}
                                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                     placeholder="you@example.com"
-                                    className="bg-neutral-900  border-neutral-700 text-white placeholder:text-gray-500 h-12"
+                                    className="bg-neutral-900  border-neutral-700 text-white placeholder:text-gray-500 h-10 sm:h-12 text-sm"
                                     required
                                 />
                             </motion.div>
@@ -423,10 +428,9 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.3 }}
-                                className="space-y-2"
+                                className="space-y-1.5"
                             >
-                                <Label htmlFor="signup-password" className="text-white text-sm font-semibold flex items-center gap-2">
-
+                                <Label htmlFor="signup-password" className="text-white text-xs sm:text-sm font-semibold flex items-center gap-2">
                                     Password
                                 </Label>
                                 <div className="relative">
@@ -436,15 +440,15 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
                                         value={formData.password}
                                         onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                                         placeholder="••••••••"
-                                        className="bg-neutral-900 border-neutral-700 text-white placeholder:text-gray-500 h-12 pr-12"
+                                        className="bg-neutral-900 border-neutral-700 text-white placeholder:text-gray-500 h-10 sm:h-12 pr-10 text-sm"
                                         required
                                     />
                                     <button
                                         type="button"
                                         onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                                        className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
                                     >
-                                        {showPassword ? <EyeOff className="w-5 h-5 cursor-pointer" /> : <Eye className="w-5 h-5 cursor-pointer" />}
+                                        {showPassword ? <EyeOff className="w-4 h-4 sm:w-5 sm:h-5 cursor-pointer" /> : <Eye className="w-4 h-4 sm:w-5 sm:h-5 cursor-pointer" />}
                                     </button>
                                 </div>
                             </motion.div>
@@ -454,7 +458,7 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
                                     type="submit"
                                     className="w-full  bg-neutral-200 text-black cursor-pointer hover:bg-neutral-200
   hover:shadow-[0_0_30px_rgba(255,255,255,0.5)]
-  transition-all duration-300 font-semibold h-12 text-base"
+  transition-all duration-300 font-semibold h-10 sm:h-12 text-sm sm:text-base"
                                 >
                                     Continue
                                 </Button>
@@ -465,9 +469,9 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ delay: 0.5 }}
-                            className="mt-6 text-center"
+                            className="mt-4 text-center"
                         >
-                            <p className="text-gray-400 text-sm">
+                            <p className="text-gray-400 text-xs sm:text-sm">
                                 Already have an account?{" "}
                                 <button
                                     type="button"
@@ -490,15 +494,15 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
                         animate="center"
                         exit="exit"
                         transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-                        className="pt-8"
+                        className="pt-4 sm:pt-8 px-3 sm:px-0"
                     >
-                        <div className="mb-12 text-center">
-                            <h2 className="text-4xl font-bold text-white mb-3 tracking-tight">Select your gender</h2>
-                            <p className="text-gray-400 text-sm font-medium">Step 2 of 5</p>
+                        <div className="mb-6 sm:mb-12 text-center">
+                            <h2 className="mb-2 text-2xl sm:text-3xl font-bold tracking-tight text-white">Select your gender</h2>
+                            <p className="text-gray-400 text-xs sm:text-sm font-medium">Step 2 of 5</p>
                         </div>
 
                         <form onSubmit={handleGenderSubmit} className="space-y-6">
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-2 gap-3 sm:gap-4">
                                 <motion.button
                                     type="button"
                                     initial={{ opacity: 0, scale: 0.8 }}
@@ -507,24 +511,24 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
                                     whileHover={{ y: -4, scale: 1.1 }}
                                     whileTap={{ scale: 0.98 }}
                                     onClick={() => setFormData({ ...formData, gender: "Male" })}
-                                    className={`cursor-pointer relative overflow-hidden rounded-2xl p-8 duration-100 ${formData.gender === "Male"
+                                    className={`cursor-pointer relative overflow-hidden rounded-2xl p-4 sm:p-8 duration-100 ${formData.gender === "Male"
                                         ? "bg-blue-500/20 border-2 border-blue-500 shadow-lg shadow-blue-500/20"
                                         : "bg-gray-800 border-2 border-gray-700 hover:border-blue-500/50 "
                                         }`}
                                 >
-                                    <div className="relative z-10 flex flex-col items-center gap-4">
+                                    <div className="relative z-10 flex flex-col items-center gap-2 sm:gap-4">
                                         <motion.div
                                             animate={{
                                                 scale: formData.gender === "Male" ? [1, 1.2, 1] : 1,
                                             }}
                                             transition={{ duration: 0.3 }}
-                                            className={`w-16 h-16  rounded-full flex items-center justify-center ${formData.gender === "Male" ? "bg-blue-500" : "bg-gray-700"
+                                            className={`w-12 h-12 sm:w-16 sm:h-16  rounded-full flex items-center justify-center ${formData.gender === "Male" ? "bg-blue-500" : "bg-gray-700"
                                                 }`}
                                         >
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mars-icon lucide-mars"><path d="M16 3h5v5" /><path d="m21 3-6.75 6.75" /><circle cx="10" cy="14" r="6" /></svg>
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-mars sm:w-6 sm:h-6"><path d="M16 3h5v5" /><path d="m21 3-6.75 6.75" /><circle cx="10" cy="14" r="6" /></svg>
                                         </motion.div>
                                         <span
-                                            className={`font-bold text-xl ${formData.gender === "Male" ? "text-blue-500" : "text-white"}`}
+                                            className={`font-bold text-lg sm:text-xl ${formData.gender === "Male" ? "text-blue-500" : "text-white"}`}
                                         >
                                             Male
                                         </span>
@@ -539,22 +543,22 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
                                     whileHover={{ y: -4, scale: 1.1 }}
                                     whileTap={{ scale: 0.98 }}
                                     onClick={() => setFormData({ ...formData, gender: "Female" })}
-                                    className={` cursor-pointer relative overflow-hidden rounded-2xl p-8  duration-100 ${formData.gender === "Female"
+                                    className={` cursor-pointer relative overflow-hidden rounded-2xl p-4 sm:p-8  duration-100 ${formData.gender === "Female"
                                         ? "bg-pink-500/20 border-2 border-pink-500 shadow-lg shadow-pink-500/20"
                                         : "bg-gray-800 border-2 border-gray-700 hover:border-pink-500/50"
                                         }`}
                                 >
-                                    <div className="relative z-10 flex flex-col items-center gap-4">
+                                    <div className="relative z-10 flex flex-col items-center gap-2 sm:gap-4">
                                         <motion.div
                                             animate={{
                                                 scale: formData.gender === "Female" ? [1, 1.2, 1] : 1,
                                             }}
                                             transition={{ duration: 0.3 }}
-                                            className={`w-16 h-16 rounded-full flex items-center justify-center ${formData.gender === "Female" ? "bg-pink-500" : "bg-gray-700"
+                                            className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center ${formData.gender === "Female" ? "bg-pink-500" : "bg-gray-700"
                                                 }`}
                                         >
                                             <svg
-                                                className={`w-8 h-8 ${formData.gender === "Female" ? "text-white" : "text-gray-400"}`}
+                                                className={`w-5 h-5 sm:w-6 sm:h-6 ${formData.gender === "Female" ? "text-white" : "text-gray-400"}`}
                                                 fill="none"
                                                 viewBox="0 0 24 24"
                                                 stroke="white"
@@ -568,7 +572,7 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
                                             </svg>
                                         </motion.div>
                                         <span
-                                            className={`font-bold text-xl ${formData.gender === "Female" ? "text-pink-500" : "text-white"}`}
+                                            className={`font-bold text-lg sm:text-xl ${formData.gender === "Female" ? "text-pink-500" : "text-white"}`}
                                         >
                                             Female
                                         </span>
@@ -580,7 +584,7 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
                                 type="submit"
                                 disabled={!formData.gender}
                                 style={{ backgroundColor: formData.gender ? themeColor : undefined }}
-                                className="cursor-pointer w-full font-semibold h-12 text-base disabled:opacity-50 disabled:cursor-not-allowed text-white  hover:bg-neutral-200
+                                className="cursor-pointer w-full font-semibold h-10 sm:h-12 text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed text-white  hover:bg-neutral-200
   "
                             >
                                 Continue
@@ -598,38 +602,35 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
                         animate="center"
                         exit="exit"
                         transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-                        className="pt-8"
+                        className="pt-4 sm:pt-8 px-3 sm:px-0"
                     >
-                        <div className="mb-8 text-center">
-                            <h2 className="text-4xl font-bold text-white mb-3 tracking-tight">How old are you?</h2>
-                            <p className="text-gray-400 text-sm font-medium">Step 3 of 5</p>
+                        <div className="mb-6 sm:mb-8 text-center">
+                            <h2 className="mb-2 text-2xl sm:text-3xl font-bold tracking-tight text-white">How old are you?</h2>
+                            <p className="text-gray-400 text-xs sm:text-sm font-medium">Step 3 of 5</p>
                         </div>
 
-                        <form onSubmit={handleAgeSubmit} className="space-y-8">
+                        <form onSubmit={handleAgeSubmit} className="space-y-6 sm:space-y-8">
                             <motion.div
                                 initial={{ scale: 0.8, opacity: 0 }}
                                 animate={{ scale: 1, opacity: 1 }}
                                 transition={{ delay: 0.1 }}
-                                className="text-center py-8 no-copy"
-
+                                className="text-center py-6 sm:py-8 no-copy"
                             >
-                                <div className="text-[120px] font-bold leading-none tracking-tight flex justify-center items-center gap-5 ">
-
+                                <div className="flex items-center justify-center gap-2 sm:gap-3 text-5xl sm:text-6xl md:text-7xl font-bold leading-none tracking-tight">
                                     <div>
                                         <motion.div
                                             whileTap={{ scale: 0.90 }}
                                             onClick={() => {
                                                 setNumericAge(prev => prev > 16 ? prev - 1 : prev);
                                             }}
-
-                                            className=" cursor-pointer border border-neutral-500 rounded-[50%] p-2 h-auto"><Minus
+                                            className=" cursor-pointer border border-neutral-500 rounded-full p-1 sm:p-2 h-auto"><Minus
                                                 style={{
                                                     color:
                                                         formData.gender === "Female"
                                                             ? "rgb(236, 72, 153)"
                                                             : "rgb(96, 165, 250)",
                                                 }}
-                                                className="rounded-[50%]"
+                                                className="w-4 h-4 sm:w-5 sm:h-5"
                                             />
                                         </motion.div>
                                     </div>
@@ -640,15 +641,14 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
                                             onClick={() => {
                                                 setNumericAge(prev => prev < 60 ? prev + 1 : prev);
                                             }}
-
-                                            className=" cursor-pointer border border-neutral-500 rounded-[50%] p-2 h-auto "><Plus
+                                            className=" cursor-pointer border border-neutral-500 rounded-full p-1 sm:p-2 h-auto "><Plus
                                                 style={{
                                                     color:
                                                         formData.gender === "Female"
                                                             ? "rgb(236, 72, 153)"
                                                             : "rgb(96, 165, 250)",
                                                 }}
-                                                className="rounded-[50%]"
+                                                className="w-4 h-4 sm:w-5 sm:h-5"
                                             />
                                         </motion.div>
                                     </div>
@@ -657,16 +657,14 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: 0.1 }}
-                                    className="text-gray-400 mt-4 text-sm font-medium "
-
-
+                                    className="text-gray-400 mt-3 sm:mt-4 text-xs sm:text-sm font-medium"
                                 >
                                     years old
                                 </motion.p>
                             </motion.div>
 
-                            <div className="space-y-4">
-                                <Label htmlFor="age" className="text-white text-sm font-semibold flex items-center gap-2">
+                            <div className="space-y-3 sm:space-y-4">
+                                <Label htmlFor="age" className="text-white text-xs sm:text-sm font-semibold flex items-center gap-2">
                                     <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: themeColor }}></span>
                                     Adjust your age
                                 </Label>
@@ -681,14 +679,11 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
                                         setNumericAge(val);
                                         setFormData(prev => ({ ...prev, age: val }));
                                     }}
-
-
                                     className="w-full h-2 bg-gray-800 rounded-full appearance-none cursor-pointer"
                                     style={{
                                         background: `linear-gradient(to right, ${themeColor} 0%, ${themeColor} ${((numericAge - 16) / (60 - 16)) * 100
                                             }%, rgb(31, 41, 55) ${((numericAge - 16) / (60 - 16)) * 60}%, rgb(31, 41, 55) 60%)`,
                                     }}
-
                                 />
                                 <style jsx>{`
     input[type='range']::-webkit-slider-thumb {
@@ -719,7 +714,7 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
                             <Button
                                 type="submit"
                                 style={{ backgroundColor: themeColor }}
-                                className="w-full font-semibold h-12 text-base text-white cursor-pointer"
+                                className="w-full font-semibold h-10 sm:h-12 text-sm sm:text-base text-white cursor-pointer"
                             >
                                 Continue
                             </Button>
@@ -732,9 +727,9 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
                                 setDirection(-1);
                                 setStep("gender");
                             }}
-                            className="absolute -top-2 left-0 text-gray-400 hover:text-black cursor-pointer"
+                            className="absolute -top-2 left-3 sm:left-0 text-gray-400 hover:text-white cursor-pointer text-sm"
                         >
-                            <ChevronLeft className="w-5 h-5 mr-1" />
+                            <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 mr-1" />
                             Back
                         </Button>
                     </motion.div>
@@ -749,83 +744,80 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
                         animate="center"
                         exit="exit"
                         transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-                        className="pt-8"
+                        className="pt-4 sm:pt-8 px-3 sm:px-0 pb-64 sm:pb-12"
                     >
-                        <div className="mb-8 text-center">
-                            <h2 className="text-4xl font-bold text-white mb-3 tracking-tight">Where are you from?</h2>
-                            <p className="text-gray-400 text-sm font-medium">Step 4 of 5</p>
+                        <div className="mb-6 sm:mb-8 text-center">
+                            <h2 className="mb-2 text-2xl sm:text-3xl font-bold tracking-tight text-white">Where are you from?</h2>
+                            <p className="text-gray-400 text-xs sm:text-sm font-medium">Step 4 of 5</p>
                         </div>
 
-                        <form onSubmit={handleCitySubmit} className="space-y-6">
+                        <form onSubmit={handleCitySubmit} className="space-y-4 sm:space-y-6">
                             <motion.div
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 className="space-y-2"
                             >
-                                <Label htmlFor="city" className="text-white text-sm font-semibold flex items-center gap-2">
+                                <Label htmlFor="city" className="text-white text-xs sm:text-sm font-semibold flex items-center gap-2">
                                     <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: themeColor }}></span>
                                     City
                                 </Label>
-                                <div className="relative">
+                                <div className="relative z-40">
                                     <Input
                                         id="city"
                                         type="text"
-                                        // value={formData.city}
-                                        // onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                                        placeholder="Ex.Delhi"
+                                        placeholder="Ex. Delhi"
                                         value={query}
                                         onChange={(e) => handleSearch(e.target.value)}
-                                        className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 h-14 text-center text-xl font-medium"
+                                        className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 h-10 sm:h-14 text-center text-base sm:text-xl font-medium"
                                         required
-
                                     />
                                
-                                {suggestions.length > 0 && (
-                                    <div className="absolute  mt-2 w-full z-50 rounded-xl 
-    bg-black/90 backdrop-blur-xl 
+                                    {suggestions.length > 0 && (
+                                        <div className="absolute top-full left-0 right-0 mt-2 z-50 rounded-xl 
+    bg-black/95 backdrop-blur-xl 
     border border-white/10 
-    shadow-[0_10px_40px_rgba(0,0,0,0.6)] 
-    overflow-hidden">
+    shadow-[0_10px_40px_rgba(0,0,0,0.8)]
+    max-h-56 sm:max-h-64 overflow-y-auto">
 
-                                        {suggestions.map((city, i) => (
-                                            <div
-                                                key={i}
-                                                onClick={() => {
-                                                    const locationObj = {
-                                                        city: `${city.name}, ${city.state}`,
-                                                        location: {
-                                                            type: "Point",
-                                                            coordinates: [city.lng, city.lat],
-                                                        },
-                                                    };
+                                            {suggestions.map((city, i) => (
+                                                <div
+                                                    key={i}
+                                                    onClick={() => {
+                                                        const locationObj = {
+                                                            city: `${city.name}, ${city.state}`,
+                                                            location: {
+                                                                type: "Point",
+                                                                coordinates: [city.lng, city.lat],
+                                                            },
+                                                        };
 
-                                                    setSelectedLocation(locationObj);
-                                                    setQuery(locationObj.city);
-                                                    setSuggestions([]);
-                                                }}
-                                                className="
-          px-4 py-3 
-          text-sm text-white/90 
+                                                        setSelectedLocation(locationObj);
+                                                        setQuery(locationObj.city);
+                                                        setSuggestions([]);
+                                                    }}
+                                                    className="
+          px-3 sm:px-4 py-2 sm:py-3 
+          text-xs sm:text-sm text-white/90 
           cursor-pointer 
           transition-all duration-150
           hover:bg-white/5 
           hover:text-white
           border-b border-white/5 last:border-none
         "
-                                            >
-                                                <span className="font-medium">{city.name}</span>
-                                                <span className="text-white/40">, {city.state}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
+                                                >
+                                                    <span className="font-medium">{city.name}</span>
+                                                    <span className="text-white/40">, {city.state}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                  </div>
                             </motion.div>
 
                             <Button
                                 type="submit"
                                 style={{ backgroundColor: themeColor }}
-                                className="w-full font-semibold h-12 text-base text-white cursor-pointer"
+                                className="w-full font-semibold h-10 sm:h-12 text-sm sm:text-base text-white cursor-pointer"
                             >
                                 Continue
                             </Button>
@@ -837,9 +829,9 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
                                 setDirection(-1);
                                 setStep("age");
                             }}
-                            className="absolute -top-4 left-0 text-gray-400 hover:text-black cursor-pointer"
+                            className="absolute -top-4 left-3 sm:left-0 text-gray-400 hover:text-white cursor-pointer text-sm"
                         >
-                            <ChevronLeft className="w-5 h-5 mr-1" />
+                            <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 mr-1" />
                             Back
                         </Button>
                     </motion.div>
@@ -853,20 +845,20 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
                         animate="center"
                         exit="exit"
                         transition={{ duration: 0.35 }}
-                        className="pt-8 relative"
+                        className="pt-4 sm:pt-8 relative px-3 sm:px-0"
                     >
                         {/* Header */}
-                        <div className="mb-8 text-center">
-                            <h2 className="text-4xl font-bold text-white mb-3">
+                        <div className="mb-6 sm:mb-8 text-center">
+                            <h2 className="mb-2 text-2xl sm:text-3xl font-bold text-white">
                                 Choose your domain
                             </h2>
-                            <p className="text-gray-400 text-sm">
+                            <p className="text-gray-400 text-xs sm:text-sm">
                                 Select up to {MAX_SELECTION}
                             </p>
                         </div>
 
                         {/* Domain Chips */}
-                        <div className="flex flex-wrap justify-center gap-4 mb-8 ">
+                        <div className="flex flex-wrap justify-center gap-2 sm:gap-4 mb-6 sm:mb-8 ">
                             {TOP_DOMAINS.map((domain) => {
                                 const selected = formData.interests.includes(domain);
 
@@ -875,7 +867,7 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
                                         key={domain}
                                         type="button"
                                         onClick={() => toggleDomain(domain)}
-                                        className={`px-5 py-2.5 cursor-pointer rounded-full text-sm font-medium transition border
+                                        className={`px-3 sm:px-5 py-1.5 sm:py-2.5 cursor-pointer rounded-full text-xs sm:text-sm font-medium transition border
                     ${selected
                                                 ? "bg-white text-black"
                                                 : "border-gray-700 text-gray-400 hover:text-white"
@@ -892,7 +884,7 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
                             onClick={handleContinue}
                             disabled={formData.interests.length === 0}
                             style={{ backgroundColor: themeColor }}
-                            className="w-full h-12 cursor-pointer rounded-lg font-semibold text-white disabled:opacity-40"
+                            className="w-full h-10 sm:h-12 cursor-pointer rounded-lg font-semibold text-white disabled:opacity-40 text-sm sm:text-base"
                         >
                             Continue
                         </button>
@@ -904,9 +896,9 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
                                 setDirection(-1);
                                 setStep("city");
                             }}
-                            className="absolute cursor-pointer -top-4 left-0 flex items-center text-gray-400 hover:text-black"
+                            className="absolute cursor-pointer -top-4 left-3 sm:left-0 flex items-center text-gray-400 hover:text-white text-sm"
                         >
-                            <ChevronLeft className="w-5 h-5 mr-1" />
+                            <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 mr-1" />
                             Back
                         </button>
                     </motion.div>
@@ -920,24 +912,24 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
                         animate="center"
                         exit="exit"
                         transition={{ duration: 0.35 }}
-                        className="pt-8"
+                        className="pt-4 sm:pt-8 px-3 sm:px-0"
                     >
-                        <div className="mb-8 text-center">
-                            <h2 className="text-4xl font-bold text-white mb-3">
+                        <div className="mb-6 sm:mb-8 text-center">
+                            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">
                                 Choose Your Avatar
                             </h2>
-                            <p className="text-gray-400 text-sm">
+                            <p className="text-gray-400 text-xs sm:text-sm">
                                 Pick one that matches your vibe ✨
                             </p>
                         </div>
 
-                        <div className="grid grid-cols-5 gap-4 mb-8">
+                        <div className="mb-6 sm:mb-8 grid grid-cols-4 sm:grid-cols-5 gap-2 sm:gap-4">
                             {AVATARS.map((avatarUrl, idx) => {
                                 const selected = formData.avatar === avatarUrl;
                                 return (
                                     <motion.div
                                         key={idx}
-                                        className={`w-20 h-20 rounded-full overflow-hidden cursor-pointer border-2 flex items-center justify-center transition-transform
+                                        className={`flex h-14 w-14 sm:h-20 sm:w-20 items-center justify-center overflow-hidden rounded-full border-2 cursor-pointer transition-transform
           ${selected ? "scale-110 shadow-lg border-white border-4" : "border-gray-700 hover:border-white/50"}`}
                                         whileHover={{ scale: 1.1 }}
                                         whileTap={{ scale: 0.95 }}
@@ -956,7 +948,7 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
                             onClick={handleFinalSignup}
                             disabled={!formData.avatar}
                             style={{ backgroundColor: themeColor }}
-                            className="w-full h-12 rounded-lg font-semibold text-white cursor-pointer disabled:opacity-40"
+                            className="w-full h-10 sm:h-12 rounded-lg font-semibold text-white cursor-pointer disabled:opacity-40 text-sm sm:text-base"
                         >
                             Finish Signup
                         </button>
@@ -967,9 +959,9 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
                                 setDirection(-1);
                                 setStep("interests");
                             }}
-                            className="absolute -top-4 left-0 flex items-center text-gray-400"
+                            className="absolute -top-4 left-3 sm:left-0 flex items-center text-gray-400 hover:text-white text-sm"
                         >
-                            <ChevronLeft className="w-5 h-5 mr-1" />
+                            <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 mr-1" />
                             Back
                         </button>
                     </motion.div>

@@ -9,10 +9,13 @@ const userSchema = new mongoose.Schema(
     gender: String,
     avatar: String,
     city: {
-      type: String, // simple + readable
+      type: String, 
       required: true
     },
-
+    refreshTokens: {
+      type: [String],
+      default: [],
+    },
     location: {
       type: {
         type: String,
@@ -20,7 +23,7 @@ const userSchema = new mongoose.Schema(
         default: "Point"
       },
       coordinates: {
-        type: [Number], // [lng, lat]
+        type: [Number], 
         required: true
       }
     },
