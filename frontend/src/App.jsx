@@ -111,7 +111,17 @@ export default function App() {
             )
           }
         /> */}
-        <Route path="/project" element={<ProjectForm />} />
+        <Route
+          path="/project"
+          element={
+            <ProjectForm
+              onComplete={() => {
+                setHasProject(true);
+                setIsLoggedIn(true);
+              }}
+            />
+          }
+        />
         {/*------session------*/
           <Route path="/session/:sessionId" element={<Session />} />
         }

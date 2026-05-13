@@ -8,7 +8,6 @@ const userInterestSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// a user cannot have the same interest twice
 userInterestSchema.index({ userId: 1, interestId: 1 }, { unique: true });
 
 export default mongoose.model("UserInterest", userInterestSchema);

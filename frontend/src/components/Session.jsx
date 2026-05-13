@@ -69,7 +69,9 @@ export default function DevSwipeKanban() {
   console.log("isownerMode->",isOwnerOnlyMode)
   console.log("isowner->",isOwnercheck)
 
-  const canAssign = isOwnerOnlyMode && isOwnercheck;
+  const canAssign =
+    (sessionInfo?.assignmentMode === "OWNER_ONLY" && isOwnercheck) ||
+    sessionInfo?.assignmentMode === "SELF_ONLY";
 
 
   console.log("canAssign->",canAssign)
@@ -350,11 +352,16 @@ export default function DevSwipeKanban() {
     >
       {isCurrentUserOwner && (
         <button
-          onClick={() => deleteTask(task._id)}
+          onClick={() => {
+            const confirmDelete = window.confirm("Are you sure you want to delete this item?");
+            if (confirmDelete) {
+              deleteTask(task._id);
+            }
+          }}
           className="absolute cursor-pointer top-2 right-2 opacity-0 group-hover:opacity-100 transition-all
     p-1.5 rounded-md hover:bg-red-500/10 text-red-500"
         >
-          <Trash2 size={14} />
+          Delete
         </button>
       )}
 
@@ -394,7 +401,7 @@ export default function DevSwipeKanban() {
                   {task.assignedTo?.name?.[0]?.toUpperCase() || "U"}
                 </div>
               )}
-              <span className="text-xs text-muted-foreground truncate max-w-[80px]">
+              <span className="text-xs text-muted-foreground truncate max-w-20">
                 {task.assignedTo.name || task.assignedTo}
               </span>
             </>
@@ -406,7 +413,7 @@ export default function DevSwipeKanban() {
         </div>
 
         {/* Right Side - Priority + Due */}
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
           <span
             className={`text-[10px] font-semibold px-2 py-1 rounded-md bg-secondary
             ${priorityConfig[task?.priority]?.textColor ?? 'text-gray-500'}`}
@@ -437,7 +444,7 @@ export default function DevSwipeKanban() {
             <div className="min-w-0">
               <h1 className="truncate text-2xl font-bold sm:text-3xl">{sessionInfo?.projectName || 'DevSwipe'}</h1>
               {sessionInfo?.description && (
-                <p className="mt-1 text-sm text-muted-foreground break-words">{sessionInfo.description}</p>
+                <p className="mt-1 text-sm text-muted-foreground wrap-break-word">{sessionInfo.description}</p>
               )}
               <div className='mt-2 flex flex-wrap gap-2'>
                 <span className="rounded-md bg-secondary px-2 py-1 text-xs font-medium">

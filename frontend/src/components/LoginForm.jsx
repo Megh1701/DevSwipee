@@ -16,7 +16,8 @@ export default function LoginForm({ onSwitchToSignup, onForgotPassword, onLoginS
     const [isLoading, setIsLoading] = useState(false)
     const [emailFocused, setEmailFocused] = useState(false)
     const [passwordFocused, setPasswordFocused] = useState(false)
-const { setUserId } = useAuth();
+const { setUserId, setAccessToken } = useAuth();
+
 
 
     const handleSubmit = async (e) => {
@@ -41,7 +42,6 @@ const { setUserId } = useAuth();
             }
             )
             console.log(response.data);
-            setUserId(response.data.user.id);
                    toast.success("Welcome back 👋");
 
             if (onLoginSuccess)

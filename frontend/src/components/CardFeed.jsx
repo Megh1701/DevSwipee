@@ -109,6 +109,7 @@ const fetchProjects = useCallback(async (reset = false) => {
       params: {
         page: reset ? 0 : page.current,
         ...filters,
+        sortBy: "atscore", 
       },
       withCredentials: true,
     });

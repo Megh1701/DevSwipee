@@ -95,31 +95,31 @@ export default function SettingsButton({ light, avatar, setAvatar, avatarArray, 
     }
   };
   const handleInterestToggle = (interest) => {
-  setProfile((prev) => {
-    const maxSelection = 3;
+    setProfile((prev) => {
+      const maxSelection = 3;
 
-    const alreadySelected =
-      prev.interests.includes(interest);
+      const alreadySelected =
+        prev.interests.includes(interest);
 
-    if (alreadySelected) {
+      if (alreadySelected) {
+        return {
+          ...prev,
+          interests: prev.interests.filter(
+            (i) => i !== interest
+          ),
+        };
+      }
+
+      if (prev.interests.length >= maxSelection) {
+        toast.error("Sorry, maximum 3 domains only");
+        return prev;
+      }
       return {
         ...prev,
-        interests: prev.interests.filter(
-          (i) => i !== interest
-        ),
+        interests: [...prev.interests, interest],
       };
-    }
-
-    if (prev.interests.length >= maxSelection) {
-      toast.error("Sorry, maximum 3 domains only");
-      return prev;
-    }
-    return {
-      ...prev,
-      interests: [...prev.interests, interest],
-    };
-  });
-};
+    });
+  };
 
   const handleClick = async () => {
     if (!visible) {
@@ -194,7 +194,7 @@ export default function SettingsButton({ light, avatar, setAvatar, avatarArray, 
 
               {/* Modal */}
               <motion.div
-                className={`fixed left-1/2 top-1/2 z-[998] h-[60vh] w-[calc(100vw-1.5rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 rounded-xl p-3 
+                className={`fixed left-1/2 top-1/2 z-[1001] h-[60vh] w-[calc(100vw-1.5rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 rounded-xl p-3 
                  ${light ? "bg-[#EDEDED]" : "bg-black"}`}
                 initial={{ scale: 0.5, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
@@ -210,14 +210,26 @@ export default function SettingsButton({ light, avatar, setAvatar, avatarArray, 
                   {avatarArray.map((src, index) => (
                     <div
                       key={index}
-                      className={`w-20 z-100 h-20 rounded-full overflow-hidden border cursor-pointer m-3 ${index === avatar ? "border-blue-500" : "border-gray-400"
+                      className={`w-20 h-20 rounded-full overflow-hidden border cursor-pointer m-3 ${avatar === src
+                          ? "border-blue-500"
+                          : "border-gray-400"
                         }`}
                       onClick={() => {
-                        setAvatar(index)
-                        setAvatarPanelOpen(false)
+                        setAvatar(src);
+
+                        setProfile(prev => ({
+                          ...prev,
+                          avatar: src,
+                        }));
+
+                        setAvatarPanelOpen(false);
                       }}
                     >
-                      <img src={src} alt={`avatar-${index}`} className="w-full h-full object-cover" />
+                      <img
+                        src={src}
+                        alt={`avatar-${index}`}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                   ))}
                 </div>
