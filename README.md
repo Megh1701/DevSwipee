@@ -27,7 +27,7 @@ Based on a comprehensive analysis of the actual codebase, DevSwipe is a monolith
 *   🗄️ **Database**: MongoDB with Mongoose ORM.
 *   ⚡ **Real-time**: Socket.IO (In-memory adapter).
 *   🔒 **Authentication**: Custom JWT-based stateless authentication.
-*   🔌 **External APIs**: Gemini API (ATS project scoring), Cloudinary (image uploads).
+*   🔌 **External APIs**: Gemini API (ATS like project scoring), Cloudinary (image uploads).
 
 
 ## 🧩 2. Component Breakdown
