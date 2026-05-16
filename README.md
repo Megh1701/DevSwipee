@@ -130,7 +130,6 @@ graph TD
 
     Session --> JiraBoard["Jira-style Task Board<br/>(To Do / In Progress / Done)"]
     Session --> ChatRoom["Real-time Chat Room"]
-    Session --> Members["Collaborators Workspace"]
 
     JiraBoard --> Tasks[Task Management System]
 ```
