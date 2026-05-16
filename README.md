@@ -17,11 +17,6 @@ Based on a comprehensive analysis of the actual codebase, DevSwipe is a monolith
 *   🔒 **Authentication**: Custom JWT-based stateless authentication.
 *   🔌 **External APIs**: Gemini API (ATS project scoring), Cloudinary (image uploads).
 
-> [!WARNING]
-> **Redis & Scaling Limitations**
-> Redis is **not implemented** in the current codebase. Socket.IO uses the default in-memory adapter, meaning socket state is bound to a single Node.js process. Horizontal scaling (e.g., using PM2 cluster mode) will break real-time features without configuring `@socket.io/redis-adapter`. Rate limiting is currently handled synchronously via MongoDB.
-
----
 
 ## 🧩 2. Component Breakdown
 
