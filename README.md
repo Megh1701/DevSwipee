@@ -1,143 +1,118 @@
-# DevSwipee 🚀
+# DevSwipe System Architecture
 
-> A Tinder-like matching platform for developers and their projects
+## 1. Architecture Summary
 
-## Overview
+Based on a comprehensive analysis of the actual codebase, DevSwipe is a monolithic web application built on the MERN stack (MongoDB, Express, React, Node.js) with real-time bidirectional communication via Socket.IO.
 
-**DevSwipee** connects developers through their projects. Create project profiles, swipe on others' work, match with like-minded developers, and collaborate in real-time.
+**Actual Tech Stack:**
+*   **Frontend**: React (Vite), Tailwind CSS, Framer Motion, Axios for HTTP.
+*   **Backend**: Node.js, Express.js.
+*   **Database**: MongoDB with Mongoose ORM.
+*   **Real-time Communication**: Socket.IO (In-memory adapter).
+*   **Authentication**: Custom JWT-based stateless authentication.
+*   **External APIs**: Gemini API (for ATS project scoring), Cloudinary (for image uploads).
 
-## ✨ Features
+## 2. Component Breakdown
 
-### Core Features
-- 🔐 **Authentication** - Secure signup/login with JWT
-- 📁 **Project Profiles** - Showcase your work with descriptions, tech stack, and URLs
-- 💝 **Swipe Feed** - Browse and swipe on other developers' projects
-- 🤝 **Matching System** - Mutual interest creates instant matches
-- 💬 **Real-time Chat** - Socket.io-powered messaging with matched developers
-- 🖼️ **Image Upload** - Cloudinary integration for project thumbnails
+### A. Authentication (JWT-based)
+*   **Implementation**: Stateless auth. The backend generates two JWTs (`accessToken` and `refreshToken`) and sets them as `HttpOnly` cookies.
+*   **Flow**: Frontend `axios` interceptors catch `401 Unauthorized` responses and automatically hit the `/auth/refresh` endpoint. Failed requests are queued, the token is refreshed, and original requests are retried invisibly to the user.
 
-### 🆕 ATS Score Dashboard (NEW!)
-- 📊 **Performance Analytics** - Track how users engage with your projects
-- 🤖 **AI-Powered Insights** - Gemini API analyzes project quality
-- 🎯 **Actionable Suggestions** - Get tips to improve your score
-- 📈 **Detailed Breakdowns** - Understand what drives your score (0-100)
-- 🎓 **Guided Tours** - Driver.js walkthroughs for new users
+### B. Swipe System (`swipeController.js`)
+*   **Implementation**: Users swipe on projects (Left = `ignore`, Right = `interested`).
+*   **Logic**: Before a swipe is recorded, the backend validates the user's daily limit (10 swipes/day) directly against the MongoDB `User` document. When a user swipes right, a `SwipeModel` document is created, and an `"swipe"` notification is generated for the project owner.
 
-**Scoring Formula:**
-- **60%** Swipe Performance (interest rate, acceptance rate, match rate)
-- **40%** Project Quality (AI analysis of description, tech depth, completeness)
+### C. Match Engine (`matchController.js`)
+*   **Implementation**: Mutual acceptance based.
+*   **Logic**: When a user goes to their "Requests" page and accepts an incoming swipe, the backend sets that swipe status to `"accepted"`. It then queries the DB for the *opposite* swipe. If both users have accepted each other's projects, a `MatchModel` document is created, and `"match"` notifications are emitted via socket.
 
-[Learn more about ATS Scoring →](./ATS_FEATURE_README.md)
+### D. Real-time Chat & Collaboration (`socket.js`)
+*   **Implementation**: Socket.IO for chat, notifications, and task management.
+*   **Rooms**: 
+    *   `joinUserRoom(userId)`: Used for user-specific real-time notifications.
+    *   `joinRoom(matchId)`: Used for isolating chat messages to specific match channels.
+    *   `join-session(sessionId)`: Used for collaborative Kanban task boards.
+*   **Chat Flow**: Messages are first saved to MongoDB (`ChatModel`), populated with user data, and then broadcasted to the `matchId` socket room.
 
-## 🛠️ Tech Stack
+### E. Notification System (`notificationController.js`)
+*   **Implementation**: Persistent + Real-time.
+*   **Logic**: The backend creates a `NotificationModel` document and attempts to emit it via `io.to(userId.toString()).emit("newNotification")`. If the user is offline, the socket emit silently drops, but the notification remains unread in MongoDB and is fetched via REST API on the next app load.
 
-### Frontend
-- React + Vite
-- TailwindCSS
-- Framer Motion
-- Socket.io-client
-- Driver.js
+---
 
-### Backend
-- Node.js + Express
-- MongoDB (Mongoose)
-- Socket.io
-- Cloudinary
-- Google Gemini API
+## 3. Flow Diagrams
 
-## 🚀 Getting Started
+### (A) High-level Architecture Diagram
 
-### Prerequisites
-- Node.js (v16+)
-- MongoDB
-- Cloudinary account
-- Gemini API key (free tier available)
+```mermaid
+graph TD
+    subgraph Frontend Client
+        React[React / Vite UI]
+        Axios[Axios Interceptors]
+        SocketClient[Socket.IO Client]
+    end
 
-### Installation
+    subgraph Backend Server Node.js
+        Express[Express REST API]
+        Auth[Auth Middleware]
+        SocketServer[Socket.IO Server\nIn-Memory Adapter]
+        
+        Controllers[Controllers\nSwipe, Match, Chat, ATS]
+        Gemini[Gemini Service]
+    end
 
-1. **Clone the repository**
-```bash
-git clone <repository-url>
-cd DevSwipee
+    subgraph Database Layer
+        MongoDB[(MongoDB)]
+        Models[Mongoose Models\nUser, Swipe, Match, Session]
+    end
+
+    %% Flow connections
+    React -->|HTTP Requests| Axios
+    Axios -->|JWT in HttpOnly Cookies| Express
+    Express --> Auth
+    Auth --> Controllers
+    Controllers -->|CRUD Operations| Models
+    Models --> MongoDB
+    Controllers <-->|HTTP Requests| Gemini
+    
+    React -->|WebSocket| SocketClient
+    SocketClient <-->|Real-time Events| SocketServer
+    Controllers -.->|Emit Notifications| SocketServer
 ```
 
-2. **Backend Setup**
-```bash
-cd backend
-npm install
-cp .env.example .env
-# Edit .env and add your credentials
-npm run dev
+### (B) Swipe → Match → Chat Flow
+
+```mermaid
+stateDiagram-v2
+    [*] --> BrowseProjects
+    
+    BrowseProjects --> SwipeRight : User A swipes right
+    
+    state SwipeRight {
+        direction Backend Validate
+        BackendValidate --> CheckLimit: DB Query (User.dailySwipeCount)
+        CheckLimit --> SaveSwipe: Limit OK, Create SwipeModel (status: interested)
+        SaveSwipe --> NotifyOwner: Emit 'swipe' notification
+    }
+    
+    SwipeRight --> OwnerReviews : User B opens Requests
+    OwnerReviews --> SwipeAccepted : User B accepts swipe
+    
+    state SwipeAccepted {
+        direction Backend Match Logic
+        UpdateSwipe --> FindOpposite: Set User B's swipe to 'accepted'
+        FindOpposite --> MatchFound: Query DB for User A's 'accepted' swipe
+        MatchFound --> CreateMatch: Create MatchModel document
+        CreateMatch --> EmitMatches: Notify both users via Socket
+    }
+    
+    SwipeAccepted --> ChatRoom : Users navigate to Messages
+    
+    state ChatRoom {
+        direction Real-Time Loop
+        UserTypes --> SocketTyping: emit('typing')
+        UserSends --> SaveMsg: API Call / Socket emit('sendMessage')
+        SaveMsg --> DBPersist: Save to ChatModel
+        DBPersist --> SocketBroadcast: io.to(matchId).emit('receiveMessage')
+    }
 ```
-
-3. **Frontend Setup**
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-### Environment Variables
-
-Create `backend/.env` with:
-```env
-DATABASE_URI=mongodb://localhost:27017/devswipee
-JWT_SECRET=your_jwt_secret
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
-GEMINI_API_KEY=your_gemini_api_key  # Get from https://makersuite.google.com/app/apikey
-NODE_ENV=development
-PORT=3000
-```
-
-## 📖 Usage
-
-1. **Sign up** and create your developer profile
-2. **Create a project** with detailed description (150+ words recommended)
-3. **Browse the feed** and swipe on projects you like
-4. **Match** with developers and start chatting
-5. **Check your ATS Score** to see how your projects perform
-6. **Follow AI suggestions** to improve your visibility
-
-## 🎯 Project Structure
-
-```
-DevSwipee/
-├── backend/
-│   ├── src/
-│   │   ├── controllers/    # Business logic
-│   │   ├── models/         # MongoDB schemas
-│   │   ├── routes/         # API endpoints
-│   │   └── utils/          # Helper functions
-│   └── index.js
-├── frontend/
-│   ├── src/
-│   │   ├── components/     # React components
-│   │   ├── pages/          # Page components
-│   │   ├── lib/            # Utilities
-│   │   └── utils/          # Helper functions
-│   └── index.html
-└── README.md
-```
-
-## 📚 Documentation
-
-- [ATS Feature Guide](./ATS_FEATURE_README.md) - Detailed ATS scoring documentation
-- [Implementation Summary](./IMPLEMENTATION_SUMMARY.md) - Technical implementation details
-- [API Routes](./backend/apiroutes.md) - Backend API reference
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## 📄 License
-
-This project is open source and available under the MIT License.
-
-## 🙏 Acknowledgments
-
-- **Gemini API** - AI-powered project quality analysis
-- **Driver.js** - Interactive guided tours
-- **Framer Motion** - Smooth animations
-- **Socket.io** - Real-time communication
