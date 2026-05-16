@@ -128,9 +128,9 @@ graph TD
     Controllers --> Match[Match Engine]
     Match --> Session[Collaboration Session Created]
 
-    Session --> JiraBoard[Jira-style Task Board\n(To Do / In Progress / Done)]
-    Session --> ChatRoom[Real-time Chat Room]
-    Session --> Members[Collaborators Workspace]
+    Session --> JiraBoard["Jira-style Task Board<br/>(To Do / In Progress / Done)"]
+    Session --> ChatRoom["Real-time Chat Room"]
+    Session --> Members["Collaborators Workspace"]
 
     JiraBoard --> Tasks[Task Management System]
 ```
