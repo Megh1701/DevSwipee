@@ -5,6 +5,18 @@
 
 ---
 
+## 🌟 Product Philosophy
+
+DevSwipe is not just a matching platform — it is a hybrid system inspired by:
+
+🔥 Tinder-style discovery → for project collaboration
+📊 Jira-style sessions → for managing collaborative workspaces after matching
+💬 Real-time chat → for execution-level communication
+
+This creates a full-cycle developer collaboration loop:
+
+Discover → Match → Plan → Build → Track → Deliver
+
 ## 🏗️ 1. Architecture Summary
 
 Based on a comprehensive analysis of the actual codebase, DevSwipe is a monolithic web application built on the **MERN stack** with real-time bidirectional communication.
@@ -24,9 +36,16 @@ Based on a comprehensive analysis of the actual codebase, DevSwipe is a monolith
 *   **Implementation**: Stateless auth. The backend generates two JWTs (`accessToken` and `refreshToken`) stored securely as `HttpOnly` cookies.
 *   **Flow**: Frontend `axios` interceptors catch `401 Unauthorized` responses and automatically hit `/auth/refresh`. Failed requests are queued, tokens are refreshed, and original requests are retried invisibly to the user.
 
-### 💝 B. Swipe System (`swipeController.js`)
-*   **Implementation**: Users swipe on projects (Left = `ignore`, Right = `interested`).
-*   **Logic**: Before a swipe is recorded, the backend validates the user's daily limit (10 swipes/day) directly against the MongoDB `User` document. Right swipes create a `SwipeModel` document and emit a `"swipe"` notification.
+### 💝 B. Swipe System (Tinder-style discovery engine)
+
+DevSwipe uses a Tinder-like interaction model for project discovery:
+
+- 👉 Swipe Right = Interested in collaborating on a project
+- 👈 Swipe Left = Not interested
+
+Unlike traditional job boards, DevSwipe focuses on **mutual intent-based collaboration**, not passive applications.
+
+Once both users show interest, the system triggers a match event in real-time.
 
 ### 🤝 C. Match Engine (`matchController.js`)
 *   **Implementation**: Mutual acceptance based.
@@ -44,6 +63,24 @@ Based on a comprehensive analysis of the actual codebase, DevSwipe is a monolith
 *   **Implementation**: Persistent + Real-time.
 *   **Logic**: The backend creates a `NotificationModel` document and attempts to emit it via `io.to(userId).emit("newNotification")`. If offline, the emit drops, but the notification remains unread in MongoDB to be fetched on the next load.
 
+### 📊 F. Collaboration Sessions (Jira-inspired system)
+
+After a successful match, DevSwipe creates a "Session Workspace" — a structured collaboration environment similar to Jira.
+
+Each session includes:
+
+- 🧩 Task Board (To Do → In Progress → Done)
+- 👥 Assigned collaborators (matched users)
+- 💬 Dedicated real-time chat room
+- 📂 Shared project context
+- 🧠 Optional AI-assisted task suggestions (future scope)
+
+#### 🧠 Purpose:
+While Tinder handles "discovery", Jira handles "execution".
+
+DevSwipe bridges both:
+👉 Match = Intent  
+👉 Session = Execution  
 ---
 
 ## 📈 3. Flow Diagrams
@@ -52,6 +89,7 @@ Based on a comprehensive analysis of the actual codebase, DevSwipe is a monolith
 
 ```mermaid
 graph TD
+
     subgraph Frontend Client
         React[React / Vite UI]
         Axios[Axios Interceptors]
@@ -62,28 +100,39 @@ graph TD
         Express[Express REST API]
         Auth[Auth Middleware]
         SocketServer[Socket.IO Server\nIn-Memory Adapter]
-        
+
         Controllers[Controllers\nSwipe, Match, Chat, ATS]
         Gemini[Gemini Service]
     end
 
     subgraph Database Layer
         MongoDB[(MongoDB)]
-        Models[Mongoose Models\nUser, Swipe, Match, Session]
+        Models[Mongoose Models\nUser, Swipe, Match, Session, Chat]
     end
 
-    %% Flow connections
+    %% Core flows
     React -->|HTTP Requests| Axios
-    Axios -->|JWT in HttpOnly Cookies| Express
+    Axios -->|JWT Cookies| Express
     Express --> Auth
     Auth --> Controllers
-    Controllers -->|CRUD Operations| Models
+    Controllers --> Models
     Models --> MongoDB
-    Controllers <-->|HTTP Requests| Gemini
-    
+
+    Controllers <-->|External API| Gemini
+
     React -->|WebSocket| SocketClient
     SocketClient <-->|Real-time Events| SocketServer
     Controllers -.->|Emit Notifications| SocketServer
+
+    %% 🔥 NEW: Tinder + Jira hybrid layer
+    Controllers --> Match[Match Engine]
+    Match --> Session[Collaboration Session Created]
+
+    Session --> JiraBoard[Jira-style Task Board\n(To Do / In Progress / Done)]
+    Session --> ChatRoom[Real-time Chat Room]
+    Session --> Members[Collaborators Workspace]
+
+    JiraBoard --> Tasks[Task Management System]
 ```
 
 ### 🔄 (B) Swipe → Match → Chat Flow
@@ -123,68 +172,16 @@ stateDiagram-v2
     }
 ```
 
-### 📡 (C) API Authentication Flow
+### 📡 (C) MATCH FLOW
 
 ```mermaid
-sequenceDiagram
-    participant UI as React Frontend
-    participant API as Express Router
-    participant Interceptor as Axios Interceptor
-    participant DB as MongoDB
+graph TD
 
-    UI->>Interceptor: GET /api/ats/my-projects
-    Interceptor->>API: HTTP GET (with Access Cookie)
-    
-    alt Token Expired (401)
-        API-->>Interceptor: 401 Unauthorized
-        Interceptor->>API: POST /auth/refresh (with Refresh Cookie)
-        API->>DB: Validate Refresh Token
-        DB-->>API: Valid
-        API-->>Interceptor: Set New Access Cookie
-        Interceptor->>API: Retry GET /api/ats/my-projects
-    end
-    
-    API->>DB: Fetch Project Scores
-    DB-->>API: Data
-    API-->>UI: 200 OK + JSON
-```
+Match[Match Created] --> Session[Create Collaboration Session]
 
-### 👥 (D) End-to-End User Interaction Flow
+Session --> JiraBoard[Task Board - Jira Style]
+Session --> ChatRoom[Real-time Chat Room]
+Session --> Members[Collaborators]
 
-```mermaid
-sequenceDiagram
-    actor UserA
-    participant SocketA as User A Socket
-    participant API as Backend API
-    participant DB as MongoDB
-    participant SocketB as User B Socket
-    actor UserB
-
-    %% Real-time connection
-    UserA->>SocketA: Connect
-    SocketA->>API: socket.join(userId_A)
-    UserB->>SocketB: Connect
-    SocketB->>API: socket.join(userId_B)
-
-    %% Swipe Flow
-    UserA->>API: POST /api/swipe (interested)
-    API->>DB: Create SwipeModel & NotificationModel
-    API-->>SocketB: emit("newNotification", swipe)
-    SocketB-->>UserB: Show Notification Badge
-
-    %% Match Flow
-    UserB->>API: POST /api/matches/accept
-    API->>DB: Update Swipe & Create MatchModel
-    API-->>SocketA: emit("newNotification", match)
-    SocketA-->>UserA: Show Notification Badge
-
-    %% Chat Flow
-    UserA->>SocketA: emit("joinRoom", matchId)
-    UserB->>SocketB: emit("joinRoom", matchId)
-    
-    UserA->>SocketA: emit("sendMessage", data)
-    SocketA->>API: Handle Event
-    API->>DB: Save ChatModel & NotificationModel
-    API-->>SocketB: emit("receiveMessage", data)
-    SocketB-->>UserB: Display Message in UI
+JiraBoard --> Tasks[To Do / In Progress / Done]
 ```
