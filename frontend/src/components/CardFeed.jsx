@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import ProjectCard from "./ProjectCard";
 import { useProfile } from "@/context/profileData";
 import api from "@/lib/axios";
+import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { useFeed } from "@/context/Feed";
@@ -9,7 +10,6 @@ import { useFeed } from "@/context/Feed";
 const VISIBLE_CARDS = 3;
 const PREFETCH_AT = 2;
 
-// ── tiny helpers ──────────────────────────────────────────────
 const getSeenIds = () => {
   try { return new Set(JSON.parse(localStorage.getItem("seen_ids") || "[]")); }
   catch { return new Set(); }
@@ -94,16 +94,20 @@ const fetchProjects = useCallback(async (reset = false) => {
   setLoading(true);
 
   try {
-    console.log("Fetching projects with filters:", filters);
 
     const hasFilters =
       filters.gender ||
       filters.domain ||
       filters.city ||
-      filters.ats ||
       filters.distance !== 50;
 
-    const endpoint = hasFilters ? "/api/filtered" : "/api/feed";
+    const isPopular = filters.ats === true;
+
+    const endpoint = isPopular
+      ? "/api/popular"
+      : hasFilters
+        ? "/api/filtered"
+        : "/api/feed";
 
     const { data } = await api.get(endpoint, {
       params: {
@@ -114,16 +118,13 @@ const fetchProjects = useCallback(async (reset = false) => {
       withCredentials: true,
     });
 
-    console.log("Projects fetched:", data);
 
     if (reset) {
       setProjects(data || []);
-      console.log("Projects state after reset:", data || []);
       page.current = 1;
     } else {
       setProjects((prev) => {
         const updatedProjects = [...prev, ...data];
-        console.log("Projects state after append:", updatedProjects);
         return updatedProjects;
       });
       page.current += 1;
@@ -131,7 +132,7 @@ const fetchProjects = useCallback(async (reset = false) => {
 
     hasMoreRef.current = !!data?.length;
   } catch (error) {
-    console.error("Error fetching projects:", error);
+    toast.error("Failed to load projects. Please try again.");
   } finally {
     fetching.current = false;
     setLoading(false);
@@ -152,8 +153,6 @@ const fetchProjects = useCallback(async (reset = false) => {
     filters.ats
 ]);
 
-
-  console.log("FILTERS SENT:", filters);
   // ── swipe ────────────────────────────────────────────────
   const handleSwipe = useCallback(async (projectId, direction, ownerId) => {
 
@@ -179,7 +178,6 @@ const fetchProjects = useCallback(async (reset = false) => {
 
   // ── render ───────────────────────────────────────────────
   const visibleCards = projects.slice(0, VISIBLE_CARDS);
-  console.log("Visible cards:", visibleCards);
   return (
     <div className="relative w-full h-2/4 flex justify-center items-center">
 

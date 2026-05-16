@@ -114,7 +114,6 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
 
 
     useEffect(() => {
-        console.log("Updating formData.age from numericAge:", numericAge);
         setFormData(prev => ({ ...prev, age: numericAge }));
     }, [numericAge]);
     const TOP_DOMAINS = [
@@ -208,8 +207,6 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
 
         if (!isValid) return;
 
-        console.log("Selected Location:", selectedLocation); 
-
         setFormData(cityPayload);
 
         toast.success("Just one more and you’re all set!");
@@ -263,9 +260,6 @@ export default function SignupForm({ onSwitchToLogin, onSignupSuccess }) {
 
         } catch (error) {
 
-            console.log("FULL ERROR:", error.response?.data);
-            console.log("STATUS:", error.response?.status);
-            console.log("ERROR:", error);
             toast.error(error.response?.data?.message || "Signup failed. Please retry.");
         } finally {
             setIsLoading(false);

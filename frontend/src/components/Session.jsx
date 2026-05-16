@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Sun, Moon, Plus, Calendar, Users, Play, X, ChevronLeft, ChevronRight, User, Trash2 } from 'lucide-react';
 import api from '@/lib/axios';
-import { fa } from 'zod/v4/locales';
+import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 
 import socket from "../socket/socket.js";
@@ -52,9 +52,7 @@ export default function DevSwipeKanban() {
   const [openMenuId, setOpenMenuId] = useState(null);
   const { sessionId } = useParams();
 
-  console.log(sessionId);
-
-  const currentUser = localStorage.getItem("userId");
+  const { userId: currentUser } = useAuth();
 
 
   const isOwnercheck = sessionInfo?.members?.some(
@@ -66,15 +64,13 @@ export default function DevSwipeKanban() {
   const isOwnerOnlyMode = sessionInfo?.assignmentMode === "OWNER_ONLY";
 
 
-  console.log("isownerMode->",isOwnerOnlyMode)
-  console.log("isowner->",isOwnercheck)
 
   const canAssign =
-    (sessionInfo?.assignmentMode === "OWNER_ONLY" && isOwnercheck) ||
-    sessionInfo?.assignmentMode === "SELF_ONLY";
+    sessionInfo?.assignmentMode === "OWNER_ONLY"
+      ? isOwnercheck
+      : true;
 
 
-  console.log("canAssign->",canAssign)
   const isCurrentUserOwner = sessionInfo?.members?.some(
     (member) =>
       member.role === "OWNER" &&
@@ -87,7 +83,6 @@ export default function DevSwipeKanban() {
     }
 
     const onConnect = () => {
-      console.log("Socket connected:", socket.id);
       socket.emit("join-session", sessionId);
     };
 
@@ -95,7 +90,6 @@ export default function DevSwipeKanban() {
 
     // Listen for task creation events
     socket.on("taskCreated", (newTask) => {
-      console.log("New task created:", newTask);
       setTasks((prev) => [
         ...prev,
         {
@@ -107,13 +101,11 @@ export default function DevSwipeKanban() {
     });
 
     socket.on("taskDeleted", (taskId) => {
-      console.log("Task deleted:", taskId);
       setTasks((prev) => prev.filter((t) => t._id !== taskId));
       toast.success("Task deleted by team member");
     });
 
     socket.on("taskUpdated", (updatedTask) => {
-      console.log("Task updated:", updatedTask);
       setTasks((prev) =>
         prev.map((t) => (t._id === updatedTask._id ? updatedTask : t))
       );
@@ -130,7 +122,6 @@ export default function DevSwipeKanban() {
   useEffect(() => {
     const getSessionInfo = async () => {
       const res = await api.get(`/api/session/${sessionId}`);
-      console.log(res.data)
       setSessionInfo(res.data);
 
 
@@ -155,12 +146,11 @@ export default function DevSwipeKanban() {
     const getSession = async () => {
       try {
         const res = await api.get(`api/tasks/${sessionId}`);
-        console.log("DATA:", res.data);
         setTasks(res.data.tasks)
         setSessionData(res.data || null);
 
       } catch (err) {
-        console.log(err.response?.data);
+        toast.error("Failed to load tasks");
       }
     };
 
@@ -218,7 +208,7 @@ export default function DevSwipeKanban() {
         status: newStatus,
       });
     } catch (err) {
-      console.log(err);
+      toast.error("Failed to move task");
     }
   };
 
@@ -236,7 +226,7 @@ export default function DevSwipeKanban() {
         toast.error("Failed to delete task");
       }
     } catch (err) {
-      console.log(err.response?.data);
+      toast.error(err.response?.data?.message || "Failed to delete task");
     }
   };
   const resetTaskForm = () => {
@@ -288,7 +278,6 @@ export default function DevSwipeKanban() {
     resetTaskForm();
     toast.success("Task created successfully");
   } catch (err) {
-    console.log(err.response?.data);
     toast.error(err.response?.data?.message || "Failed to create task");
   }
 };
@@ -450,7 +439,7 @@ export default function DevSwipeKanban() {
                 <span className="rounded-md bg-secondary px-2 py-1 text-xs font-medium">
                   {sessionInfo?.assignmentMode === "ANYONE" && "Anyone can assign tasks"}
                   {sessionInfo?.assignmentMode === "OWNER_ONLY" && "Only owner assigns"}
-                  {sessionInfo?.assignmentMode === "SELF_ONLY" && "Self assign only"}
+                  {sessionInfo?.assignmentMode === "SELF_ONLY" && "Anyone can assign tasks"}
                 </span>
 
                 <span className="rounded-md bg-blue-500/10 px-2 py-1 text-xs font-medium text-blue-500">

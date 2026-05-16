@@ -83,7 +83,7 @@ export default function ForgotPasswordFlow({ onBackToLogin }) {
 
 
         } catch (err) {
-            console.log(err)
+            // handled by toast.promise
         } finally {
             setIsLoading(false)
         }
@@ -109,7 +109,7 @@ export default function ForgotPasswordFlow({ onBackToLogin }) {
 
 
         } catch (err) {
-            console.log(err);
+            // handled by toast.promise
         } finally {
             setIsLoading(false);
         }
@@ -166,7 +166,6 @@ export default function ForgotPasswordFlow({ onBackToLogin }) {
                 },
                 error: (err) => err?.response?.data?.message || "Invalid OTP",
             });
-            console.log(response.data)
 
             if (response.data.success) {
                 setDirection(1)
@@ -174,7 +173,7 @@ export default function ForgotPasswordFlow({ onBackToLogin }) {
             }
 
         } catch (err) {
-            console.log(err)
+            // handled by toast.promise
         } finally {
             setIsLoading(false)
         }
@@ -227,7 +226,7 @@ export default function ForgotPasswordFlow({ onBackToLogin }) {
 
 
         } catch (error) {
-            console.log(error);
+            // handled by toast.promise
         } finally {
             setIsLoading(false);
         }

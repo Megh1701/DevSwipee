@@ -13,7 +13,7 @@ export const AuthProvider = ({ children }) => {
         const { data } = await api.get("/auth/me");
         setUserId(data.userId);
       } catch (error) {
-        console.error("Failed to fetch user:", error);
+        // silent — user may not be authenticated
       } finally {
         setLoading(false);
       }

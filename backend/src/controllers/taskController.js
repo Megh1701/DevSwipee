@@ -63,12 +63,18 @@ export const createTask = async (req, res) => {
             ],
         });
 
-        io.to(sessionId).emit("taskCreated", task)
+        // Populate so frontend gets full user data immediately
+        const populatedTask = await task.populate([
+            { path: "assignedTo", select: "name email avatar" },
+            { path: "createdBy", select: "name email" },
+        ]);
+
+        io.to(sessionId).emit("taskCreated", populatedTask)
 
         return res.status(201).json({
             success: true,
             message: "Task created successfully",
-            task,
+            task: populatedTask,
         });
     } catch (err) {
         console.error("Create Task Error:", err);
@@ -158,7 +164,6 @@ export const moveTask = async (req, res) => {
     });
 
   } catch (error) {
-    console.log(error);
     return res.status(500).json({
       success: false,
       message: "Server error",
@@ -205,10 +210,8 @@ export const deleteTask = async (req, res) => {
 
         const io = getIO();
 
-        console.log("ROOM ID:", tasks.sessionId.toString());
         io.to(tasks.sessionId.toString()).emit("taskDeleted", taskId);
 
-        console.log("EMITTING TO ROOM:", tasks.sessionId);
         res.status(200).json({
             success: true,
             message: "Task deleted successfully",
@@ -216,7 +219,6 @@ export const deleteTask = async (req, res) => {
 
     }
     catch (err) {
-        console.log(err);
         res.status(500).json({ message: "Server error" });
 
     }

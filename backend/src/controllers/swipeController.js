@@ -1,6 +1,7 @@
 import UserModel from "../models/UserModel.js";
 import SwipeModel from "../models/SwipeModel.js";
 import ProjectModel from "../models/ProjectModel.js";
+import { createNotification } from "./notificationController.js";
 
 const DAILY_LIMIT = 10;
 
@@ -85,7 +86,16 @@ export const SwipeHandler = async (req, res) => {
       status: swipeStatus,
     });
 
-    console.log("Swipe saved:", swipe);
+    // Notify project owner when someone swipes right
+    if (isRightSwipe) {
+      const swiper = await UserModel.findById(swiperId).select("name");
+      await createNotification(
+        ownerId,
+        "swipe",
+        `${swiper?.name || "Someone"} is interested in your project!`,
+        swipe._id
+      );
+    }
 
     
     return res.json({
@@ -96,7 +106,6 @@ export const SwipeHandler = async (req, res) => {
     });
 
   } catch (err) {
-    console.error("Swipe error:", err);
     return res.status(500).json({ success: false });
   }
 };
@@ -121,7 +130,6 @@ export const getMyRequests = async (req, res) => {
       swipes,
     });
   } catch (error) {
-    console.error("getMyRequests error:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch requests",
@@ -132,8 +140,6 @@ export const getMyRequests = async (req, res) => {
 export const listMySwipes = async (req, res) => {
   try {
 
-    console.log("Cookies:", req.cookies);
-    console.log("User:", req.user);
     const userId = req.user.id;
     const myswipes = await SwipeModel.find({ swiperId: userId, direction: true, })
       .select("status createdAt")
@@ -147,7 +153,6 @@ export const listMySwipes = async (req, res) => {
 
     res.json({ success: true, swipes: myswipes });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
@@ -174,7 +179,6 @@ export const updateSwipeStatus = async (req, res) => {
 
     res.json({ success: true, swipe });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ success: false });
   }
 };

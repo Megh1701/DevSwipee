@@ -22,8 +22,6 @@ export const ProfileProvider = ({ children }) => {
       try {
         const res = await api.get("/api/profiledata");
 
-        console.log("API DATA:", res.data);
-
         const user = res.data.user || res.data;
 
         setProfile({
@@ -38,7 +36,7 @@ export const ProfileProvider = ({ children }) => {
         });
 
       } catch (error) {
-        console.error("Profile fetch failed:", error);
+        // silent — user may not be logged in
       } finally {
         setLoading(false);
       }

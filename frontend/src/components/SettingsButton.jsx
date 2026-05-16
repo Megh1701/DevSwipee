@@ -36,7 +36,6 @@ export default function SettingsButton({ light, avatar, setAvatar, avatarArray, 
     try {
       await api.post("auth/logout", {}, { withCredentials: true });
 
-      console.log('asd');
       localStorage.removeItem("token");
 
       setIsLoggedIn(false);
@@ -46,7 +45,7 @@ export default function SettingsButton({ light, avatar, setAvatar, avatarArray, 
 
       navigate("/", { replace: true });
     } catch (err) {
-      console.log(err);
+      toast.error("Failed to logout");
     }
   };
 
@@ -78,7 +77,6 @@ export default function SettingsButton({ light, avatar, setAvatar, avatarArray, 
         { withCredentials: true }
       );
 
-      console.log("Profile updated successfully");
       toast.success("Profile updated successfully")
       const user = res.data.user || res.data;
 
@@ -88,10 +86,7 @@ export default function SettingsButton({ light, avatar, setAvatar, avatarArray, 
       }));
 
     } catch (error) {
-      console.error(
-        "Update failed:",
-        error.response?.data?.message || error.message
-      );
+      toast.error("Failed to update profile");
     }
   };
   const handleInterestToggle = (interest) => {

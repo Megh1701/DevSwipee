@@ -76,9 +76,8 @@ const Request = ({ light }) => {
       try {
         const res = await api.get("/api/requests", { withCredentials: true });
         setRequests(res.data.swipes);
-        console.log(res.data);
       } catch (e) {
-        console.error(e);
+        toast.error("Failed to load requests");
       } finally {
         setLoading(false);
       }
@@ -101,7 +100,6 @@ const Request = ({ light }) => {
       const body = type === "accepted" ? {} : { status: "rejected" };
 
       const res = await api.patch(endpoint, body, { withCredentials: true });
-      console.log("SWIPE RESPONSE:", res.data);
 
       // Remove swipe from UI immediately
       setRequests((prev) => prev.filter((s) => s._id !== id));
@@ -123,7 +121,7 @@ const Request = ({ light }) => {
         }, 1200);
       }
     } catch (err) {
-      console.error("SWIPE ERROR:", err);
+      toast.error("Failed to update request");
     }
   };
 

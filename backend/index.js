@@ -19,6 +19,7 @@ const startServer = async () => {
   const forgotRoutes = (await import("./src/routes/forgotRoutes.js")).default;
   const InviteSession = (await import("./src/routes/invitesessionRoutes.js")).default;
   const Tasks=(await import("./src/routes/taskRoutes.js")).default;
+  const notificationRoutes = (await import("./src/routes/notificationRoutes.js")).default;
   const { initializeSocket } = await import("./src/socket/socket.js");
 
   await connectDB();
@@ -48,7 +49,8 @@ const startServer = async () => {
   app.use("/api/matches", matchesRouter);
   app.use("/api/chat", chatRoutes);
   app.use("/api/ats", atsRoutes);
-  app.use("/api",Tasks)
+  app.use("/api",Tasks);
+  app.use("/api/notifications", notificationRoutes);
   
   initializeSocket(server);
 

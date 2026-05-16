@@ -15,6 +15,7 @@ import api from "./lib/axios.js";
 import { useProfile } from "./context/ProfileData";
 import { verifyAuth } from "./lib/authverify.js";
 import { useAuth } from "./context/AuthContext";
+import socket from "./socket/socket";
 
 const avatarImports = import.meta.glob("./assets/*.{png,jpg,jpeg}", {
   eager: true,
@@ -40,6 +41,9 @@ export default function App() {
   useEffect(() => {
     if (loading) return;
     checkAuth();
+    if (userId) {
+      socket.emit("joinUserRoom", userId);
+    }
   }, [loading, userId]);
 
 

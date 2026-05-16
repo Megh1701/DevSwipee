@@ -20,7 +20,6 @@ const ATSDashboard = ({ light = false }) => {
       const res = await api.get("/api/ats/my-projects");
       setProjects(res.data.projects || []);
     } catch (error) {
-      console.error("Failed to fetch ATS scores:", error);
       toast.error("Failed to load project scores");
     } finally {
       setLoading(false);

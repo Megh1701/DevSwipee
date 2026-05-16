@@ -1,5 +1,6 @@
 import { Server } from "socket.io";
 import ChatModel from "../models/ChatModel.js";
+import { createNotification } from "../controllers/notificationController.js";
 
 let io;
 export const initializeSocket = (server) => {
@@ -44,6 +45,9 @@ export const initializeSocket = (server) => {
 
         const populatedMessage = await ChatModel.findById(message._id)
           .populate("senderId", "_id name");
+
+        // Send a notification to the receiver
+        await createNotification(data.receiverId, "message", `New message from ${populatedMessage.senderId.name}`, data.matchId);
 
         io.to(data.matchId).emit("receiveMessage", populatedMessage);
       } catch (err) {

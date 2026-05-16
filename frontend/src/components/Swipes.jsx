@@ -131,7 +131,7 @@ const Swipes = ({ light }) => {
         const res = await api.get("/api/myswipes", { withCredentials: true });
         setRequests(res.data.swipes);
       } catch (e) {
-        console.error(e);
+        // silent
       } finally {
         setLoading(false);
       }

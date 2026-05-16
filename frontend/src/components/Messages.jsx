@@ -30,7 +30,7 @@ export default function Messages({ light }) {
         );
         setMatches(res.data.matches);
       } catch (err) {
-        console.error("Failed to fetch chats:", err);
+        // silent — chats may be empty
       }
     };
 

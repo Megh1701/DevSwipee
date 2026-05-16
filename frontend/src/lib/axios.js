@@ -5,36 +5,58 @@ const api = axios.create({
   withCredentials: true,
 });
 
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+
+  failedQueue = [];
+};
+
 api.interceptors.response.use(
   (response) => response,
-
-  async (error) => {
-
+  (error) => {
     const originalRequest = error.config;
 
-    if (
-      error.response?.status === 401 &&
-      !originalRequest._retry
-    ) {
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        return new Promise(function (resolve, reject) {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            return api(originalRequest);
+          })
+          .catch((err) => {
+            return Promise.reject(err);
+          });
+      }
 
       originalRequest._retry = true;
+      isRefreshing = true;
 
-      try {
-
-        await axios.post(
-          "http://localhost:3000/auth/refresh",
-          {},
-          { withCredentials: true }
-        );
-
-        return api(originalRequest);
-
-      } catch (refreshError) {
-
-        window.location.href = "/login";
-
-        return Promise.reject(refreshError);
-      }
+      return new Promise(function (resolve, reject) {
+        axios
+          .post("http://localhost:3000/auth/refresh", {}, { withCredentials: true })
+          .then(({ data }) => {
+            processQueue(null, data.token);
+            resolve(api(originalRequest));
+          })
+          .catch((err) => {
+            processQueue(err, null);
+            window.location.href = "/login";
+            reject(err);
+          })
+          .finally(() => {
+            isRefreshing = false;
+          });
+      });
     }
 
     return Promise.reject(error);

@@ -107,8 +107,7 @@ export const getFilteredProjectsFeed = async (req, res) => {
       .populate("userId", "avatar name gender city")
       .sort(sortOption)
       .skip(Number(page) * limit)
-      .limit(limit)
-      .sort({ createdAt: -1 });
+      .limit(limit);
 
     return res.status(200).json(projects);
 
@@ -117,5 +116,28 @@ export const getFilteredProjectsFeed = async (req, res) => {
     return res.status(500).json({
       message: "Server error",
     });
+  }
+};
+
+
+export const getPopularFeed = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const page = parseInt(req.query.page) || 0;
+    const limit = 5;
+
+    // Global popular feed — only exclude own projects, NOT swiped ones
+    const projects = await Project.find({
+      userId: { $ne: userId },
+    })
+      .populate("userId", "avatar name city")
+      .sort({ atsQualityScore: -1 })
+      .skip(page * limit)
+      .limit(limit);
+
+    res.status(200).json(projects);
+  } catch (err) {
+    console.error("Popular feed error:", err);
+    res.status(500).json({ message: err.message });
   }
 };

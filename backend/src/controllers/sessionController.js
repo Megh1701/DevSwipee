@@ -3,6 +3,7 @@ import InviteSession from "../models/InviteSessionModel.js";
 import SessionModel from "../models/SessionModel.js";
 import matchSchema from "../models/MatchModel.js"
 import { getIO } from "../socket/socket.js";
+import { createNotification } from "./notificationController.js";
 
 
 export const sessionInvite = async (req, res) => {
@@ -29,7 +30,8 @@ export const sessionInvite = async (req, res) => {
             : match.user1Id;
 
         const existingSession = await SessionModel.findOne({
-            matchId: match,
+            matchId: matchId,
+            status: "ACTIVE",
             members: {
                 $all: [
                     { $elemMatch: { userId: toUser } },
@@ -72,6 +74,8 @@ export const sessionInvite = async (req, res) => {
             matchId,
         });
 
+        await createNotification(toUser, "invite", "You received a new session invite!", invite._id);
+
         io.to(toUser.toString()).emit("newInvite", invite);
 
         return res.status(201).json({
@@ -85,7 +89,6 @@ export const sessionInvite = async (req, res) => {
             });
         }
 
-        console.error(err);
         return res.status(500).json({
             message: "Server error",
         });
@@ -146,6 +149,7 @@ export const inviteResponse = async (req, res) => {
 
             const existingSession = await SessionModel.findOne({
                 matchId: invite.matchId,
+                status: "ACTIVE",
                 members: {
                     $all: [
                         { $elemMatch: { userId: invite.fromUser } },
@@ -189,7 +193,6 @@ export const inviteResponse = async (req, res) => {
 
 
     } catch (err) {
-        console.error(err);
         return res.status(500).json({
             message: "Server error",
         });
@@ -260,7 +263,34 @@ export const getSessionbyparams = async (req, res) => {
         return res.status(200).json(session);
 
     } catch (error) {
-        console.error('Get Session Error:', error);
         return res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
+// End Session
+export const endSession = async (req, res) => {
+    try {
+        const { sessionId } = req.params;
+        const userId = req.user.id;
+
+        const session = await SessionModel.findById(sessionId);
+        if (!session) {
+            return res.status(404).json({ message: "Session not found" });
+        }
+
+        const isMember = session.members.some(member => member.userId.toString() === userId);
+        if (!isMember) {
+            return res.status(403).json({ message: "Not authorized to end this session" });
+        }
+
+        session.status = "ENDED";
+        await session.save();
+
+        const io = getIO();
+        io.to(session.matchId.toString()).emit("sessionEnded", session._id);
+
+        return res.status(200).json({ message: "Session ended successfully", session });
+    } catch (error) {
+        return res.status(500).json({ message: "Internal server error" });
     }
 };

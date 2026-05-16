@@ -1,5 +1,6 @@
 import MatchModel from "../models/MatchModel.js";
 import SwipeModel from "../models/SwipeModel.js";
+import { createNotification } from "./notificationController.js";
 
 function normalizeUsers(a, b) {
   return a.toString() < b.toString() ? [a, b] : [b, a];
@@ -61,6 +62,11 @@ export const acceptSwipe = async (req, res) => {
         },
         { upsert: true, new: true }
       );
+
+      if (match) {
+        await createNotification(user1Id, "match", "You got a new match!", match._id);
+        await createNotification(user2Id, "match", "You got a new match!", match._id);
+      }
 
       console.log("🎉 MATCH CREATED:", match);
     }

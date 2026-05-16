@@ -54,9 +54,6 @@ const ProjectForm = ({ onComplete }) => {
 
                 projectRef.current = data._id;
 
-                console.log(projectRef.current)
-                console.log("PROJECT DATA:", data);
-
                 if (!data || typeof data !== "object") {
                     toast.error("Invalid project response");
                     return;
@@ -73,7 +70,6 @@ const ProjectForm = ({ onComplete }) => {
 
 
             } catch (err) {
-                console.error(err);
                 toast.error("Failed to load project");
             }
         };
@@ -98,7 +94,7 @@ const ProjectForm = ({ onComplete }) => {
             const data = await res.json();
             setProjectform((prev) => ({ ...prev, thumbnail: data.thumbnailUrl }));
         } catch (err) {
-            console.error(err);
+            toast.error("Image upload failed");
         } finally {
             setIsLoading(false);
         }
@@ -172,7 +168,6 @@ const ProjectForm = ({ onComplete }) => {
             navigate("/home");
 
         } catch (err) {
-            console.error(err);
             toast.error("Something went wrong. Try again.");
             setIsLoading(false);
         }

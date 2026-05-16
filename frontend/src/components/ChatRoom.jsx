@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, Wrench } from "lucide-react";
 import axios from "axios";
+import { toast } from "sonner";
 import socket from "../socket/socket";
 import { Link } from "react-router-dom";
 import { set } from "zod";
@@ -28,9 +29,7 @@ export default function PremiumChatRoom({ light }) {
   const typingTimeoutRef = useRef(null);
   const [session, setSession] = useState([])
   const [activeSession, setActiveSession] = useState(null);
-
-
-  useEffect(() => {
+  const [showEndSessionModal, setShowEndSessionModal] = useState(false);  useEffect(() => {
     setCurrentUserId(userId);
   }, [userId]);
 
@@ -44,7 +43,7 @@ export default function PremiumChatRoom({ light }) {
 
         setActiveSession(res.data.session);
       } catch (err) {
-        console.log(err.response?.data);
+        // silent — session may not exist yet
       }
     };
 
@@ -59,12 +58,17 @@ export default function PremiumChatRoom({ light }) {
 
   useEffect(() => {
     socket.on("newInvite", (newInvite) => {
-
       setIsInvite((prev) => [...prev, newInvite])
+    });
 
-    })
+    const handleSessionEnded = (endedSessionId) => {
+      setActiveSession((prev) => (prev && prev._id === endedSessionId ? null : prev));
+    };
+    socket.on("sessionEnded", handleSessionEnded);
+
     return () => {
       socket.off("newInvite");
+      socket.off("sessionEnded", handleSessionEnded);
     };
   }, [])
 
@@ -78,7 +82,7 @@ export default function PremiumChatRoom({ light }) {
 
         setIsInvite(res.data.invites); 
       } catch (err) {
-        console.log(err.response?.data);
+        // silent — no pending invites
       }
     };
 
@@ -104,7 +108,7 @@ export default function PremiumChatRoom({ light }) {
         setOtherUser(other);
         setOtherUserId(other._id);
       } catch (err) {
-        console.error("Meta fetch failed", err);
+        toast.error("Failed to load chat info");
       }
     };
 
@@ -154,7 +158,7 @@ export default function PremiumChatRoom({ light }) {
         );
         setMessages(res.data?.messages || []);
       } catch (err) {
-        console.error("Message fetch failed", err);
+        toast.error("Failed to load messages");
       }
     };
 
@@ -243,8 +247,9 @@ export default function PremiumChatRoom({ light }) {
       setIsBuild(false);
       setProjectName("");
       setProjectType("");
+      toast.success("Session invite sent!");
     } catch (err) {
-      console.log(err.response?.data);
+      toast.error(err.response?.data?.message || "Failed to send invite");
     }
   };
 
@@ -267,9 +272,9 @@ export default function PremiumChatRoom({ light }) {
       if (res.data.session) {
         setActiveSession(res.data.session);
       }
-
+      toast.success("Invite accepted!");
     } catch (err) {
-      console.error(err);
+      toast.error("Failed to accept invite");
     }
   };
   const rejectInvite = async (inviteId) => {
@@ -283,9 +288,9 @@ export default function PremiumChatRoom({ light }) {
       setIsInvite((prev) =>
         prev.filter((i) => i._id !== inviteId)
       );
-
+      toast.success("Invite declined");
     } catch (err) {
-      console.error(err);
+      toast.error("Failed to decline invite");
     }
   };
   const bgMain = light
@@ -424,38 +429,99 @@ export default function PremiumChatRoom({ light }) {
         <div ref={messagesEndRef} />
       </div>
       {activeSession && (
-        <Link
-          to={`/session/${activeSession._id}`}
-          className={`group flex items-center justify-between px-4 py-3 rounded-xl border transition-all
+        <div className={`flex items-center justify-between px-4 py-3 rounded-xl border transition-all
       ${light
-              ? "bg-green-100 border-green-300 hover:bg-green-200 text-black"
-              : "bg-emerald-500/10 border-emerald-500/20 hover:bg-emerald-500/20 text-white"
-            }`}
-        >
-          {/* Left */}
-          <div className="flex items-center gap-3">
-            <span className="text-lg">🚀</span>
+              ? "bg-green-100 border-green-300 text-black"
+              : "bg-emerald-500/10 border-emerald-500/20 text-white"
+            }`}>
+          <Link
+            to={`/session/${activeSession._id}`}
+            className="flex-1 flex items-center justify-between group hover:opacity-80 transition"
+          >
+            {/* Left */}
+            <div className="flex items-center gap-3">
+              <span className="text-lg">🚀</span>
 
-            <div>
-              <p className="text-sm font-medium">
-                You both started:{" "}
-                <span className="font-semibold">
-                  {activeSession.projectName}
-                </span>
-              </p>
+              <div>
+                <p className="text-sm font-medium">
+                  You both started:{" "}
+                  <span className="font-semibold">
+                    {activeSession.projectName}
+                  </span>
+                </p>
 
-              <p className="text-xs opacity-70">
-                Click to open Kanban board
-              </p>
+                <p className="text-xs opacity-70">
+                  Click to open Kanban board
+                </p>
+              </div>
             </div>
-          </div>
-
-
-          <span className="text-sm opacity-60 group-hover:translate-x-1 transition">
-            →
-          </span>
-        </Link>
+          </Link>
+          
+          <button 
+            onClick={(e) => {
+              e.preventDefault();
+              setShowEndSessionModal(true);
+            }}
+            className={`p-2 rounded-lg transition ${light ? "text-red-500 hover:bg-red-200" : "text-red-400 hover:bg-red-500/20"}`}
+            title="End Session"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+          </button>
+        </div>
       )}
+
+      {/* END SESSION MODAL */}
+      <AnimatePresence>
+        {showEndSessionModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 250, damping: 25 }}
+              className={`w-full max-w-sm rounded-2xl p-6 shadow-2xl border ${
+                light ? "bg-white border-gray-200 text-black" : "bg-zinc-900 border-zinc-800 text-white"
+              }`}
+            >
+              <h3 className="text-xl font-bold mb-2">End Session?</h3>
+              <p className={`text-sm mb-6 ${light ? "text-gray-600" : "text-zinc-400"}`}>
+                Are you sure you want to end this collaboration session? This action cannot be undone.
+              </p>
+              
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowEndSessionModal(false)}
+                  className={`flex-1 py-2.5 rounded-xl font-medium transition ${
+                    light ? "bg-gray-100 hover:bg-gray-200 text-black" : "bg-zinc-800 hover:bg-zinc-700 text-white"
+                  }`}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    try {
+                      await axios.put(`http://localhost:3000/api/session/${activeSession._id}/end`, {}, { withCredentials: true });
+                      setActiveSession(null);
+                      setShowEndSessionModal(false);
+                      toast.success("Session ended successfully");
+                    } catch (err) {
+                      toast.error("Failed to end session");
+                    }
+                  }}
+                  className="flex-1 py-2.5 rounded-xl font-medium bg-red-500 hover:bg-red-600 text-white transition"
+                >
+                  Yes, End it
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* INPUT */}
       <div className="p-4 border-t flex gap-3">
@@ -544,9 +610,9 @@ export default function PremiumChatRoom({ light }) {
                         : "bg-zinc-900 border-zinc-700 text-white"}
   `}
                   >
-                    <option value="ANYONE">Anyone can assign tasks</option>
+                    <option value="">Choose Assignment Policy</option>
                     <option value="OWNER_ONLY">Only owner assigns tasks</option>
-                    <option value="SELF_ONLY">Self-assign only</option>
+                    <option value="ANYONE">Anyone can assign tasks</option>
                   </select>
                 </div>
 

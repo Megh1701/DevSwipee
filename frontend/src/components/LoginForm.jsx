@@ -41,18 +41,15 @@ const { setUserId, setAccessToken } = useAuth();
                 password
             }
             )
-            console.log(response.data);
                    toast.success("Welcome back 👋");
 
             if (onLoginSuccess)
 
                 await onLoginSuccess();
-            console.log(response.data);
         }
         catch (error) {
-            console.error(error);
             toast.error(
-                error.response?.data?.message || "Login failed"
+                error.response?.data?.error || "Login failed"
             );
         }
         finally {
